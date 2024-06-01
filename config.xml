@@ -1,0 +1,45 @@
+<?xml version='1.0' encoding='utf-8'?>
+<widget id="ru.fcpsr.trailtracker" version="1.0.0" xmlns="http://www.w3.org/ns/widgets" xmlns:cdv="http://cordova.apache.org/ns/1.0">
+    <name>Медвежья Тропа</name>
+    <description>Sample Apache Cordova App</description>
+    <author email="karachkov_is@fcpsr.ru" href="https://myscope.online">
+        Ivan Karachkov
+    </author>
+    <content src="index.html" />
+    <access origin="*" />
+    <feature name="Geolocation">
+        <param name="ios-package" value="CDVLocation" />
+        <param name="android-package" value="org.apache.cordova.geolocation.GeoBroker" />
+    </feature>
+    <feature name="NetworkStatus">
+        <param name="ios-package" value="CDVConnection" />
+        <param name="android-package" value="org.apache.cordova.networkinformation.NetworkManager" />
+    </feature>
+    <feature name="Camera">
+        <param name="ios-package" value="CDVCamera" />
+        <param name="android-package" value="org.apache.cordova.camera.CameraLauncher" />
+    </feature>
+    <feature name="MediaCapture">
+        <param name="ios-package" value="CDVMediaCapture" />
+        <param name="android-package" value="org.apache.cordova.mediacapture.MediaCapture" />
+    </feature>
+    <feature name="Contacts">
+        <param name="ios-package" value="CDVContacts" />
+        <param name="android-package" value="org.apache.cordova.contact.ContactManager" />
+    </feature>
+    <feature name="File">
+        <param name="ios-package" value="CDVFile" />
+        <param name="android-package" value="org.apache.cordova.file.FileUtils" />
+    </feature>
+    <allow-intent href="http://*/*" />
+    <allow-intent href="https://*/*" />
+    <platform name="android">
+        <icon src="assets/mdpi.png" density="mdpi" />
+        <icon src="assets/ldpi.png" density="ldpi" />
+        <icon src="assets/hdpi.png" density="hdpi" />
+        <icon src="assets/xhdpi.png" density="xhdpi" />
+        <icon src="assets/xxhdpi.png" density="xxhdpi" />
+        <icon src="assets/xxxhdpi.png" density="xxxhdpi" />
+    </platform>
+</widget>
+
