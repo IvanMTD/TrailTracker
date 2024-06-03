@@ -207,6 +207,7 @@ function onSuccess(position){
     if (!prevPoint) {
         prevPoint = [latitude, longitude];
     }
+    console.log("prev point is: " + prevPoint);
     // Вычисляем расстояние между текущей и предыдущей точками
     var distance = L.latLng([latitude, longitude]).distanceTo(L.latLng(prevPoint));
 
@@ -217,42 +218,42 @@ function onSuccess(position){
 
         // Обновляем линию на карте
         trackLine.setLatLngs(trackPoints);
-
-        // Если маркер уже существует, перемещаем его в новую позицию
-        if (arrowMarker) {
-            arrowMarker.setLatLng([latitude, longitude]).update();
-        } else{
-            arrowMarker = L.marker([latitude, longitude], { icon: arrowIcon }).addTo(map);
-        }
-
-        // Поворачиваем иконку маркера стрелочки так, чтобы она указывала в направлении движения
-        if (position.coords.heading) {
-            var currentAngle = arrowMarker.options.rotationAngle; // сохраняем текущий угол поворота маркера
-            var newAngle = position.coords.heading;
-            var angleDiff = newAngle - currentAngle;
-            var angleStep = 5; // шаг изменения угла поворота в градусах
-
-            // Если разница между углами больше шага, изменяем угол поворота на шаг
-            if (Math.abs(angleDiff) > angleStep) {
-                if (angleDiff > 0) {
-                    newAngle = currentAngle + angleStep;
-                } else {
-                    newAngle = currentAngle - angleStep;
-                }
-            }
-
-            // Устанавливаем новый угол поворота с небольшой задержкой
-            setTimeout(function() {
-                arrowMarker.setRotationAngle(newAngle);
-            }, 50); // задержка в миллисекундах
-        }
-
-        // Поворачиваем карту так, чтобы маркер был в центре
-        map.flyTo([latitude, longitude], zoom, {
-            animate: true,
-            duration: 1 // длительность анимации в секундах
-        });
     }
+
+    // Если маркер уже существует, перемещаем его в новую позицию
+    if (arrowMarker) {
+        arrowMarker.setLatLng([prevPoint[0], prevPoint[1]]).update();
+    } else{
+        arrowMarker = L.marker([prevPoint[0], prevPoint[1]], { icon: arrowIcon }).addTo(map);
+    }
+
+    // Поворачиваем иконку маркера стрелочки так, чтобы она указывала в направлении движения
+    if (position.coords.heading) {
+        var currentAngle = arrowMarker.options.rotationAngle; // сохраняем текущий угол поворота маркера
+        var newAngle = position.coords.heading;
+        var angleDiff = newAngle - currentAngle;
+        var angleStep = 5; // шаг изменения угла поворота в градусах
+
+        // Если разница между углами больше шага, изменяем угол поворота на шаг
+        if (Math.abs(angleDiff) > angleStep) {
+            if (angleDiff > 0) {
+                newAngle = currentAngle + angleStep;
+            } else {
+                newAngle = currentAngle - angleStep;
+            }
+        }
+
+        // Устанавливаем новый угол поворота с небольшой задержкой
+        setTimeout(function() {
+            arrowMarker.setRotationAngle(newAngle);
+        }, 50); // задержка в миллисекундах
+    }
+
+    // Поворачиваем карту так, чтобы маркер был в центре
+    map.flyTo([prevPoint[0], prevPoint[1]], zoom, {
+        animate: true,
+        duration: 1 // длительность анимации в секундах
+    });
 }
 
 function onError(error){
