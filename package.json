@@ -31,7 +31,9 @@
       "browser"
     ],
     "plugins": {
-      "cordova-plugin-geolocation": {},
+      "cordova-plugin-geolocation": {
+        "GPS_REQUIRED": "true"
+      },
       "cordova-plugin-network-information": {},
       "cordova-plugin-camera": {
         "ANDROIDX_CORE_VERSION": "1.6.+"
@@ -52,6 +54,7 @@
     "bootstrap-icons": "^1.11.3",
     "hammerjs": "^2.0.8",
     "jquery": "^3.7.1",
+    "leaflet-rotatedmarker": "^0.2.0",
     "page": "^1.11.6"
   }
 }
