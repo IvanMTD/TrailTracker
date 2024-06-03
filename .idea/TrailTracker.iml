@@ -17,8 +17,9 @@
     <orderEntry type="library" name="page.js" level="application" />
     <orderEntry type="library" name="hammer.js" level="application" />
     <orderEntry type="library" name="jquery-3.6.0" level="application" />
-    <orderEntry type="library" name="bootstrap" level="application" />
-    <orderEntry type="library" name="bootstrap-icons" level="application" />
-    <orderEntry type="library" name="@popperjs/core" level="application" />
+    <orderEntry type="library" name="page.js" level="application" />
+    <orderEntry type="library" name="hammer.js" level="application" />
+    <orderEntry type="library" name="jquery-3.6.0" level="application" />
+    <orderEntry type="library" name="leaflet" level="application" />
   </component>
 </module>
