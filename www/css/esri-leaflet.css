@@ -1,0 +1,59 @@
+/* Set the default map background color */
+.esri-leaflet .leaflet-pane {
+    background: #f5f5f5;
+}
+
+/* Set the default marker icon */
+.esri-leaflet .leaflet-marker-icon {
+    background-image: url('./www/img/navi-arrow.webp');
+}
+
+/* Set the default popup style */
+.esri-leaflet .leaflet-popup {
+    background-color: #fff;
+    border: 1px solid #ccc;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    color: #333;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    padding: 10px;
+    width: auto;
+    max-width: 300px;
+}
+
+/* Set the default popup arrow style */
+.esri-leaflet .leaflet-popup-tip {
+    border-color: #ccc;
+    border-width: 1px;
+}
+
+/* Set the default zoom control style */
+.esri-leaflet .leaflet-control-zoom {
+    background-color: #fff;
+    border: 1px solid #ccc;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    padding: 5px;
+}
+
+/* Set the default zoom control button style */
+.esri-leaflet .leaflet-control-zoom-in,
+.esri-leaflet .leaflet-control-zoom-out {
+    background-color: #ddd;
+    border: none;
+    color: #fff;
+    cursor: pointer;
+    display: block;
+    font-size: 14px;
+    line-height: 18px;
+    padding: 0;
+    text-align: center;
+    text-decoration: none;
+    width: 18px;
+    height: 18px;
+}
+
+/* Set the hover state for the zoom control buttons */
+.esri-leaflet .leaflet-control-zoom-in:hover,
+.esri-leaflet .leaflet-control-zoom-out:hover {
+    background-color: #eee;
+}
