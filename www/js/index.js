@@ -5,6 +5,14 @@ var marker = null;
 var prevPoint = null;
 var followUser = false;
 
+var i_Latitude = null;
+var i_Longitude = null;
+var i_Altitude = null;
+var i_Accuracy = null;
+var i_AltitudeAccuracy = null;
+var i_Heading = null;
+var i_Speed = null;
+
 page('/', loadMainPage);
 page('/info', loadInfoPage);
 page('/profile', loadProfilePage);
@@ -136,16 +144,22 @@ function createMap(){
 
 function init(){
     console.log('создаю собственный слой карты');
-    var MyLayer = function (){
-        var layer = new ymaps.Layer('http://tile.openstreetmap.org/%z/%x/%y.png');
+    var MyLayer = function () {
+        var subdomains = ['a', 'b', 'c'];
+        var getTileUrl = function (z, x, y) {
+            var s = subdomains[Math.floor(Math.random() * subdomains.length)];
+            return `https://${s}.tile.opentopomap.org/%${z}/%${x}/%${y}.png`;
+        };
+        var layer = new ymaps.Layer(getTileUrl('z', 'x', 'y'));
         layer.getCopyrights = function () {
             return ymaps.vow.resolve('');
         };
         layer.getZoomRange = function () {
-            return ymaps.vow.resolve([0, 18]);
+            return ymaps.vow.resolve([0, 17]);
         };
         return layer;
     };
+
     ymaps.layer.storage.add('my#layer', MyLayer);
     var myMapType = new ymaps.MapType('MY', ['my#layer']);
     ymaps.mapType.storage.add('yandex#myLayer', myMapType);
@@ -154,7 +168,7 @@ function init(){
     map = new ymaps.Map('map', {
         center: [58.0000, 160.0000],
         zoom: 5,
-        //type: 'yandex#myLayer',
+        type: 'yandex#myLayer',
         controls: []
     }, {
         suppressMapOpenBlock: true // Убираем надпись "открыть в Яндекс.Картах"
@@ -164,6 +178,7 @@ function init(){
     marker = new ymaps.Placemark([58.0000, 160.0000], {}, {
         iconLayout: 'default#image',
         iconImageHref: 'img/navi-arrow.webp',
+        iconRotation: 0,
         iconImageSize: [32, 32],
         iconImageOffset: [-16, -16]
     });
@@ -171,7 +186,7 @@ function init(){
     // Добавляем маркер на карту
     map.geoObjects.add(marker);
 
-    // Создаем кнопку, которая будет включать/отключать центрирование камеры на маркере
+    console.log('создаю кнопку для центрирование на пользователе');
     var followButton = new ymaps.control.Button({
         data: {
             content: '<i class="bi bi-person fs-4"></i>'
@@ -180,11 +195,80 @@ function init(){
             selectOnClick: true
         }
     });
-    // Добавляем кнопку на карту
+    i_Latitude = new ymaps.control.Button({
+        data: {
+            content: '<p>' + 0 + '</p>'
+        }
+    });
+    i_Longitude = new ymaps.control.Button({
+        data: {
+            content: '<p>' + 0 + '</p>'
+        }
+    });
+    i_Altitude = new ymaps.control.Button({
+        data: {
+            content: '<p>' + 0 + '</p>'
+        }
+    });
+    i_Accuracy = new ymaps.control.Button({
+        data: {
+            content: '<p>' + 0 + '</p>'
+        }
+    });
+    i_AltitudeAccuracy = new ymaps.control.Button({
+        data: {
+            content: '<p>' + 0 + '</p>'
+        }
+    });
+    i_Heading = new ymaps.control.Button({
+        data: {
+            content: '<p>' + 0 + '</p>'
+        }
+    });
+    i_Speed = new ymaps.control.Button({
+        data: {
+            content: '<p>' + 0 + '</p>'
+        }
+    });
+
+    i_Latitude.options.set('maxWidth', 300);
+    i_Longitude.options.set('maxWidth', 300);
+    i_Altitude.options.set('maxWidth', 300);
+    i_Accuracy.options.set('maxWidth', 300);
+    i_AltitudeAccuracy.options.set('maxWidth', 300);
+    i_Heading.options.set('maxWidth', 300);
+    i_Speed.options.set('maxWidth', 300);
+
+    // Создаем контейнер для кнопок
+    var buttonsContainer = new ymaps.control.ListBox({
+        data: {
+          content:'Данные'
+        },
+        items: [
+            i_Latitude,
+            i_Longitude,
+            i_Altitude,
+            i_Accuracy,
+            i_AltitudeAccuracy,
+            i_Heading,
+            i_Speed
+        ]
+    });
+
+    map.controls.add(buttonsContainer, { float: 'left' });
     map.controls.add(followButton);
 
+    /*map.controls.add(i_Speed);
+    map.controls.add(i_Heading);
+    map.controls.add(i_AltitudeAccuracy);
+    map.controls.add(i_Accuracy);
+    map.controls.add(i_Altitude);
+    map.controls.add(i_Longitude);
+    map.controls.add(i_Latitude);
+    map.controls.add(followButton);*/
+
     // Обработчик нажатия на кнопку
-    followButton.events.add('select', function () {
+    followButton.events.add('click', function () {
         followUser = !followUser; // Меняем флаг на противоположный
         if (followUser) {
             console.log(followUser);
@@ -194,6 +278,19 @@ function init(){
             followButton.data.set('content', '<i class="bi bi-person fs-4"></i>');
         }
     });
+
+    map.events.add('click', function (e) {
+        var coords = e.get('coords');
+        console.log('Координаты точки: ' + coords[0].toFixed(6) + ', ' + coords[1].toFixed(6));
+    });
+
+    // Проверка проекции карты и установка на EPSG:3857, если необходимо
+    var currentProjection = map.options.get('projection');
+    if (currentProjection !== ymaps.projection.sphericalMercator) {
+        console.log('Проекция карты отличается от EPSG:3857. Настройка проекции...');
+        map.options.set('projection', ymaps.projection.sphericalMercator);
+    }
+
     startTacker();
 }
 
@@ -201,7 +298,7 @@ function startTacker() {
     watchID = navigator.geolocation.watchPosition(onSuccess,onError,
         {
         enableHighAccuracy: true, // Запрашиваем максимально возможную точность
-        timeout: 5000, // Задаем таймаут в 5 секунд
+        //timeout: 5000, // Задаем таймаут в 5 секунд
         maximumAge: 0 // Запрашиваем всегда только свежие данные
         }
     );
@@ -224,15 +321,21 @@ function onSuccess(position){
     var timestamp = getDate(position.timestamp);
     var zoom = getZoom(speed);
 
-    setInfo(latitude);
+    i_Latitude.data.set('content', '<p>Широта: ' + latitude + '</p>');
+    i_Longitude.data.set('content', '<p>Долгота: ' + longitude + '</p>');
+    i_Altitude.data.set('content', '<p>Высота: ' + altitude + '</p>');
+    i_Accuracy.data.set('content', '<p>Точность: ' + accuracy + '</p>');
+    i_AltitudeAccuracy.data.set('content', '<p>Точность высоты: ' + altitudeAccuracy + '</p>');
+    i_Heading.data.set('content', '<p>Направление: ' + heading + '</p>');
+    i_Speed.data.set('content', '<p>Скорость: ' + speed + '</p>');
 
     // Если предыдущая точка не существует, сохраняем текущую точку в качестве предыдущей
     if (!prevPoint) {
         prevPoint = [latitude, longitude];
     }
 
-    marker.geometry.setCoordinates([latitude, longitude]);
-    marker.options.set('iconImageOffset', [-16, -16 + (heading / 360) * 32]);
+    smoothMoveMarker(marker,{lat: latitude, lng: longitude});
+    smoothRotateMarker(marker,heading);
 
     if(firstStep){
         cameraControl(latitude,longitude,zoom);
@@ -244,6 +347,49 @@ function onSuccess(position){
     }
 
     prevPoint = [latitude, longitude];
+}
+
+// Плавное перемещение маркера
+function smoothMoveMarker(marker, newPosition) {
+    var start = marker.geometry.getCoordinates(),
+        end = [newPosition.lat, newPosition.lng],
+        duration = 1000, // Продолжительность анимации в миллисекундах
+        startTime = new Date().getTime(), // Время начала анимации
+        animateMarker = function() {
+            var time = new Date().getTime() - startTime,
+                percent = time / duration;
+            if (percent < 1) {
+                var newPosition = [
+                    start[0] + (end[0] - start[0]) * percent,
+                    start[1] + (end[1] - start[1]) * percent
+                ];
+                marker.geometry.setCoordinates(newPosition);
+                requestAnimationFrame(animateMarker);
+            } else {
+                marker.geometry.setCoordinates(end);
+            }
+        };
+    animateMarker();
+}
+
+// Плавное вращение маркера
+function smoothRotateMarker(marker, newHeading) {
+    var startHeading = marker.options.get('iconRotation'),
+        endHeading = newHeading,
+        duration = 1000, // Продолжительность анимации в миллисекундах
+        startTime = new Date().getTime(), // Время начала анимации
+        animateRotation = function() {
+            var time = new Date().getTime() - startTime,
+                percent = time / duration;
+            if (percent < 1) {
+                var newHeading = startHeading + (endHeading - startHeading) * percent;
+                marker.options.set('iconRotation', newHeading);
+                requestAnimationFrame(animateRotation);
+            } else {
+                marker.options.set('iconRotation', endHeading);
+            }
+        };
+    animateRotation();
 }
 
 function cameraControl(latitude,longitude,zoom){
@@ -270,123 +416,6 @@ function getDate(timestamp){
     var seconds = date.getSeconds(); // получаем секунды (от 0 до 59)
 
     return  day + '.' + month + '.' + year + ' ' + hours + ':' + minutes + ':' + seconds;
-}
-
-/*function onSuccess(position){
-    // Получаем координаты пользователя и некоторые другие полезные данные
-    var latitude = position.coords.latitude;
-    var longitude = position.coords.longitude;
-    var altitude = position.coords.altitude;
-    var accuracy = position.coords.accuracy;
-    var altitudeAccuracy = position.coords.altitudeAccuracy;
-    var heading = position.coords.heading;
-    var speed = position.coords.speed;
-    var timestamp = position.timestamp;
-
-    var date = new Date(timestamp); // преобразуем timestamp в объект Date
-
-    var day = date.getDate(); // получаем день месяца
-    var month = date.getMonth() + 1; // получаем месяц (от 1 до 12)
-    var year = date.getFullYear(); // получаем год
-
-    var hours = date.getHours(); // получаем часы (от 0 до 23)
-    var minutes = date.getMinutes(); // получаем минуты (от 0 до 59)
-    var seconds = date.getSeconds(); // получаем секунды (от 0 до 59)
-
-    var result = day + '.' + month + '.' + year + ' ' + hours + ':' + minutes + ':' + seconds;
-
-    var correctSpeed = speed;
-    if(correctSpeed > 60){
-        correctSpeed = 60;
-    }
-    if(correctSpeed < 1){
-        correctSpeed = 1;
-    }
-
-    var zoom = 17 - ((correctSpeed / 60) * 17);
-    if(zoom < 1){
-        zoom = 1;
-    }
-    if(zoom > 17){
-        zoom = 17;
-    }
-
-    $('#information').empty();
-    /!*setInfo(latitude);
-    setInfo(longitude);
-    setInfo(altitude);
-    setInfo(accuracy);
-    setInfo(altitudeAccuracy);
-    setInfo('Направление: ' + heading);
-    setInfo(speed);
-    setInfo(result);*!/
-
-    // Если предыдущая точка не существует, сохраняем текущую точку в качестве предыдущей
-    if (!prevPoint) {
-        prevPoint = [latitude, longitude];
-    }
-    console.log("prev point is: " + prevPoint);
-    // Вычисляем расстояние между текущей и предыдущей точками
-    var distance = L.latLng([latitude, longitude]).distanceTo(L.latLng(prevPoint));
-
-    console.log('distance: ' + distance);
-
-    // Если расстояние больше 5 метров, добавляем точку в массив для отрисовки и сохраняем текущую точку в качестве предыдущей
-    if (distance > 1) {
-        trackPoints.push([latitude, longitude]);
-        prevPoint = [latitude, longitude];
-    }
-
-    // Если маркер уже существует, перемещаем его в новую позицию
-    if (arrowMarker) {
-        arrowMarker.setLatLng([latitude, longitude], {
-            animate: true // включаем анимацию перемещения маркера
-        });
-    } else {
-        arrowMarker = L.marker([latitude, longitude], {
-            icon: arrowIcon,
-            rotationAngle: 0
-        }).addTo(map);
-    }
-
-    // Поворачиваем иконку маркера стрелочки так, чтобы она указывала в направлении движения
-    if (position.coords.heading) {
-        arrowMarker.setRotationAngle(position.coords.heading);
-    }
-
-    // Обновляем линию на карте
-    trackLine.setLatLngs(trackPoints);
-    // Поворачиваем карту так, чтобы маркер был в центре
-    if(firstStep) {
-        map.flyTo([prevPoint[0], prevPoint[1]], zoom, {
-            animate: true,
-            duration: 1 // длительность анимации в секундах
-        });
-        firstStep = false;
-    }
-}*/
-
-function setInfo(info){
-    /*var infoPanel = document.createElement('div');
-    infoPanel.className = 'container';
-    infoPanel.innerHTML = '' +
-        '<div class="row">' +
-        '   <div class="col d-flex">' +
-        '       <div class="m-auto">' +
-        '           <p>' + info + '</p>' +
-        '       </div>' +
-        '   </div>' +
-        '</div>' +
-        '';
-    map.controls.add(infoPanel);*/
-
-    /*var infoTable = new ymaps.control.Button({
-        data: {
-            content: info
-        }
-    });*/
-    // Добавляем кнопку на карту
-    //map.controls.add(infoTable);
 }
 
 function onError(error){
@@ -450,5 +479,5 @@ function getZoom(speed){
     return zoom;
 }
 
-loadMapPage();
+//loadMapPage();
 
