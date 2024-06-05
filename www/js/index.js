@@ -2,8 +2,12 @@ var watchID = null;
 var map = null;
 var firstStep = true;
 var marker = null;
-var prevPoint = null;
 var followUser = false;
+
+var prevTimestamp = null;
+var prevCoords = null;
+var MAX_DISTANCE = 50; // Максимальное допустимое расстояние (в метрах) между двумя измерениями
+var MIN_TIME_DIFF = 2000; // Минимальный допустимый промежуток времени (в миллисекундах) между двумя измерениями
 
 var i_Latitude = null;
 var i_Longitude = null;
@@ -23,6 +27,7 @@ document.addEventListener("deviceready", onDeviceReady, false);
 
 function onDeviceReady(){
     var permissions = cordova.plugins.permissions;
+    console.log('Устройство готово!');
     $('#content').empty();
     $('#content').append(
         '<div class="container">' +
@@ -79,6 +84,18 @@ function onDeviceReady(){
     }
 
     checkPermission();
+}
+
+function enableInsomnia() {
+    if (window.plugins && window.plugins.insomnia) {
+        window.plugins.insomnia.keepAwake();
+    }
+}
+
+function disableInsomnia() {
+    if (window.plugins && window.plugins.insomnia) {
+        window.plugins.insomnia.allowSleepAgain();
+    }
 }
 
 function loadMainPage(ctx, next) {
@@ -147,6 +164,57 @@ function init(){
 
     var MyLayer = function () {
         var subdomains = ['a', 'b', 'c'];
+
+        /*var getTileUrl = function (tile, zoom, callback) {
+            if (typeof cordova !== 'undefined') {
+                var s = subdomains[Math.floor(Math.random() * subdomains.length)];
+                var url = `https://${s}.tile.opentopomap.org/${zoom}/${tile[0]}/${tile[1]}.png`;
+                var path = `${zoom}/${tile[0]}/`;
+                var filename = `${tile[1]}.png`;
+
+                window.resolveLocalFileSystemURL(
+                    cordova.file.dataDirectory + path + filename,
+                    function (entry) {
+                        // Тайл уже существует, используем его
+                        callback(entry.nativeURL);
+                    },
+                    function () {
+                        // Тайл не существует, скачиваем его
+                        saveTile(url, path, filename, callback);
+                    }
+                );
+            }else{
+                var s = subdomains[Math.floor(Math.random() * subdomains.length)];
+                return `https://${s}.tile.opentopomap.org/${zoom}/${tile[0]}/${tile[1]}.png`;
+            }
+        };*/
+
+        /*var layer = new ymaps.Layer(function (tile, zoom) {
+            return new ymaps.vow.Promise(function (resolve) {
+                getTileUrl(tile, zoom, function (tileUrl) {
+                    resolve(tileUrl);
+                });
+            });
+        }, { projection: ymaps.projection.sphericalMercator });*/
+
+        var getTileUrl = function (tile, zoom) {
+            var s = subdomains[Math.floor(Math.random() * subdomains.length)];
+            return `https://${s}.tile.opentopomap.org/${zoom}/${tile[0]}/${tile[1]}.png`;
+        };
+
+        var layer = new ymaps.Layer(getTileUrl, {projection: ymaps.projection.sphericalMercator});
+
+        layer.getCopyrights = function () {
+            return ymaps.vow.resolve('');
+        };
+        layer.getZoomRange = function () {
+            return ymaps.vow.resolve([0, 18]);
+        };
+        return layer;
+    };
+
+    /*var MyLayer = function () {
+        var subdomains = ['a', 'b', 'c'];
         var getTileUrl = function (tile, zoom) {
             var s = subdomains[Math.floor(Math.random() * subdomains.length)];
             return `https://${s}.tile.opentopomap.org/${zoom}/${tile[0]}/${tile[1]}.png`;
@@ -159,7 +227,7 @@ function init(){
             return ymaps.vow.resolve([0, 17]);
         };
         return layer;
-    };
+    };*/
 
     ymaps.layer.storage.add('my#layer', MyLayer);
     var myMapType = new ymaps.MapType('MY', ['my#layer']);
@@ -176,33 +244,14 @@ function init(){
     });
 
     console.log('создаю маркер');
-    // Создаем макет метки.
-    /*marker = new ymaps.Placemark([58.0000, 160.0000], {}, {
-        iconLayout: 'default#image',
-        iconImageHref: 'img/navi-arrow.webp',
-        iconRotation: 0,
-        iconImageSize: [32, 32],
-        iconImageOffset: [-16, -16]
-    });*/
-
-    var MyIconContentLayout = ymaps.templateLayoutFactory.createClass(
-        '<div class="rotating-icon" style="transform: rotate({{ options.rotate }}deg);">' +
-        '<img src="img/navi-arrow.webp"/>' +
-        '</div>'
-    );
-
     marker = new ymaps.Placemark([58.0000, 160.0000], {}, {
         iconLayout: 'default#imageWithContent',
         iconImageHref: '',
-        //iconImageSize: [64, 64],
-        //iconImageOffset: [-16, -16],
         rotate: 0
     });
-
-    // Добавляем маркер на карту
     map.geoObjects.add(marker);
 
-    console.log('создаю кнопку для центрирование на пользователе');
+    console.log('создаю кнопки');
     var followButton = new ymaps.control.Button({
         data: {
             content: '<i class="bi bi-person fs-4"></i>'
@@ -286,6 +335,9 @@ function init(){
         }
     });
 
+    console.log('пробую добавить трек маршрут');
+    gpxParser(map,'Налычево_Таловские');
+
     /*map.events.add('click', function (e) {
         var coords = e.get('coords');
         console.log('Координаты точки: ' + coords[0].toFixed(6) + ', ' + coords[1].toFixed(6));
@@ -302,6 +354,7 @@ function init(){
 }
 
 function startTacker() {
+    enableInsomnia();
     watchID = navigator.geolocation.watchPosition(onSuccess,onError,
         {
         enableHighAccuracy: true, // Запрашиваем максимально возможную точность
@@ -313,6 +366,7 @@ function startTacker() {
 
 function stopTracker(id){
     navigator.geolocation.clearWatch(id);
+    disableInsomnia();
     firstStep = true;
 }
 
@@ -323,10 +377,28 @@ function onSuccess(position){
     var altitude = position.coords.altitude;
     var accuracy = position.coords.accuracy;
     var altitudeAccuracy = position.coords.altitudeAccuracy;
-    var heading = Math.random() * 360;//position.coords.heading;
+    var heading = position.coords.heading;
     var speed = position.coords.speed;
     var timestamp = getDate(position.timestamp);
     var zoom = getZoom(speed);
+
+    if (!prevCoords) {
+        prevCoords = [latitude, longitude];
+        prevTimestamp = timestamp;
+        return;
+    }else {
+        var distance = getDistanceFromLatLonInMeters(prevCoords[0], prevCoords[1], latitude, longitude);
+        var timeDiff = timestamp - prevTimestamp;
+
+        if (distance > MAX_DISTANCE && timeDiff < MIN_TIME_DIFF) {
+            // Если дистанция слишком большая и прошло меньше допустимого времени, игнорируем это значение
+            return;
+        }
+
+        // Обновляем предыдущие координаты и время
+        prevCoords = [latitude, longitude];
+        prevTimestamp = timestamp;
+    }
 
     i_Latitude.data.set('content', '<p>Широта: ' + latitude + '</p>');
     i_Longitude.data.set('content', '<p>Долгота: ' + longitude + '</p>');
@@ -335,11 +407,6 @@ function onSuccess(position){
     i_AltitudeAccuracy.data.set('content', '<p>Точность высоты: ' + altitudeAccuracy + '</p>');
     i_Heading.data.set('content', '<p>Направление: ' + heading + '</p>');
     i_Speed.data.set('content', '<p>Скорость: ' + speed + '</p>');
-
-    // Если предыдущая точка не существует, сохраняем текущую точку в качестве предыдущей
-    if (!prevPoint) {
-        prevPoint = [latitude, longitude];
-    }
 
     smoothMoveMarker(marker, {lat: latitude, lng: longitude});
     smoothRotateMarker(marker, heading);
@@ -352,8 +419,6 @@ function onSuccess(position){
     if (followUser) {
         cameraControl(latitude, longitude, zoom);
     }
-
-    prevPoint = [latitude, longitude];
 }
 
 // Плавное перемещение маркера
@@ -383,12 +448,6 @@ function smoothMoveMarker(marker, newPosition) {
 
 // Плавное вращение маркера
 function smoothRotateMarker(marker, newHeading) {
-   /* marker.options.set('rotate', newHeading);
-    marker.options.set('iconContentLayout', ymaps.templateLayoutFactory.createClass(
-        '<div class="rotating-icon" style="transform: rotate(' + newHeading + 'deg);">' +
-        '<img src="img/navi-arrow.webp" width="32" height="32" />' +
-        '</div>'
-    ));*/
     var startHeading = marker.options.get('rotate'),
         endHeading = newHeading,
         duration = 1000, // Продолжительность анимации в миллисекундах
@@ -503,5 +562,5 @@ function getZoom(speed){
     return zoom;
 }
 
-//coloadMapPage();
+loadMapPage();
 
