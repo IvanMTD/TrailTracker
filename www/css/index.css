@@ -67,3 +67,18 @@ header, footer {
     overflow: hidden;
     text-overflow: ellipsis;
 }
+
+.rotating-icon {
+    transition: transform 0.1s linear;
+    transform-origin: center center; /* Устанавливаем центр вращения */
+    width: 32px; /* Устанавливаем ширину */
+    height: 32px; /* Устанавливаем высоту */
+    display: flex; /* Используем flex для центрирования изображения */
+    align-items: center;
+    justify-content: center;
+}
+.rotating-icon img {
+    display: block;
+    width: 100%; /* Устанавливаем ширину изображения */
+    height: 100%; /* Устанавливаем высоту изображения */
+}

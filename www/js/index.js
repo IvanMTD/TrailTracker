@@ -144,13 +144,14 @@ function createMap(){
 
 function init(){
     console.log('создаю собственный слой карты');
+
     var MyLayer = function () {
         var subdomains = ['a', 'b', 'c'];
-        var getTileUrl = function (z, x, y) {
+        var getTileUrl = function (tile, zoom) {
             var s = subdomains[Math.floor(Math.random() * subdomains.length)];
-            return `https://${s}.tile.opentopomap.org/%${z}/%${x}/%${y}.png`;
+            return `https://${s}.tile.opentopomap.org/${zoom}/${tile[0]}/${tile[1]}.png`;
         };
-        var layer = new ymaps.Layer(getTileUrl('z', 'x', 'y'));
+        var layer = new ymaps.Layer(getTileUrl, {projection: ymaps.projection.sphericalMercator});
         layer.getCopyrights = function () {
             return ymaps.vow.resolve('');
         };
@@ -175,12 +176,27 @@ function init(){
     });
 
     console.log('создаю маркер');
-    marker = new ymaps.Placemark([58.0000, 160.0000], {}, {
+    // Создаем макет метки.
+    /*marker = new ymaps.Placemark([58.0000, 160.0000], {}, {
         iconLayout: 'default#image',
         iconImageHref: 'img/navi-arrow.webp',
         iconRotation: 0,
         iconImageSize: [32, 32],
         iconImageOffset: [-16, -16]
+    });*/
+
+    var MyIconContentLayout = ymaps.templateLayoutFactory.createClass(
+        '<div class="rotating-icon" style="transform: rotate({{ options.rotate }}deg);">' +
+        '<img src="img/navi-arrow.webp"/>' +
+        '</div>'
+    );
+
+    marker = new ymaps.Placemark([58.0000, 160.0000], {}, {
+        iconLayout: 'default#imageWithContent',
+        iconImageHref: '',
+        //iconImageSize: [64, 64],
+        //iconImageOffset: [-16, -16],
+        rotate: 0
     });
 
     // Добавляем маркер на карту
@@ -258,15 +274,6 @@ function init(){
     map.controls.add(buttonsContainer, { float: 'left' });
     map.controls.add(followButton);
 
-    /*map.controls.add(i_Speed);
-    map.controls.add(i_Heading);
-    map.controls.add(i_AltitudeAccuracy);
-    map.controls.add(i_Accuracy);
-    map.controls.add(i_Altitude);
-    map.controls.add(i_Longitude);
-    map.controls.add(i_Latitude);
-    map.controls.add(followButton);*/
-
     // Обработчик нажатия на кнопку
     followButton.events.add('click', function () {
         followUser = !followUser; // Меняем флаг на противоположный
@@ -279,7 +286,7 @@ function init(){
         }
     });
 
-    map.events.add('click', function (e) {
+    /*map.events.add('click', function (e) {
         var coords = e.get('coords');
         console.log('Координаты точки: ' + coords[0].toFixed(6) + ', ' + coords[1].toFixed(6));
     });
@@ -289,7 +296,7 @@ function init(){
     if (currentProjection !== ymaps.projection.sphericalMercator) {
         console.log('Проекция карты отличается от EPSG:3857. Настройка проекции...');
         map.options.set('projection', ymaps.projection.sphericalMercator);
-    }
+    }*/
 
     startTacker();
 }
@@ -316,7 +323,7 @@ function onSuccess(position){
     var altitude = position.coords.altitude;
     var accuracy = position.coords.accuracy;
     var altitudeAccuracy = position.coords.altitudeAccuracy;
-    var heading = position.coords.heading;
+    var heading = Math.random() * 360;//position.coords.heading;
     var speed = position.coords.speed;
     var timestamp = getDate(position.timestamp);
     var zoom = getZoom(speed);
@@ -334,16 +341,16 @@ function onSuccess(position){
         prevPoint = [latitude, longitude];
     }
 
-    smoothMoveMarker(marker,{lat: latitude, lng: longitude});
-    smoothRotateMarker(marker,heading);
+    smoothMoveMarker(marker, {lat: latitude, lng: longitude});
+    smoothRotateMarker(marker, heading);
 
-    if(firstStep){
-        cameraControl(latitude,longitude,zoom);
+    if (firstStep) {
+        cameraControl(latitude, longitude, zoom);
         firstStep = false;
     }
 
-    if(followUser){
-        cameraControl(latitude,longitude,zoom);
+    if (followUser) {
+        cameraControl(latitude, longitude, zoom);
     }
 
     prevPoint = [latitude, longitude];
@@ -351,6 +358,8 @@ function onSuccess(position){
 
 // Плавное перемещение маркера
 function smoothMoveMarker(marker, newPosition) {
+    console.log(marker);
+    console.log(newPosition);
     var start = marker.geometry.getCoordinates(),
         end = [newPosition.lat, newPosition.lng],
         duration = 1000, // Продолжительность анимации в миллисекундах
@@ -374,7 +383,13 @@ function smoothMoveMarker(marker, newPosition) {
 
 // Плавное вращение маркера
 function smoothRotateMarker(marker, newHeading) {
-    var startHeading = marker.options.get('iconRotation'),
+   /* marker.options.set('rotate', newHeading);
+    marker.options.set('iconContentLayout', ymaps.templateLayoutFactory.createClass(
+        '<div class="rotating-icon" style="transform: rotate(' + newHeading + 'deg);">' +
+        '<img src="img/navi-arrow.webp" width="32" height="32" />' +
+        '</div>'
+    ));*/
+    var startHeading = marker.options.get('rotate'),
         endHeading = newHeading,
         duration = 1000, // Продолжительность анимации в миллисекундах
         startTime = new Date().getTime(), // Время начала анимации
@@ -383,10 +398,19 @@ function smoothRotateMarker(marker, newHeading) {
                 percent = time / duration;
             if (percent < 1) {
                 var newHeading = startHeading + (endHeading - startHeading) * percent;
-                marker.options.set('iconRotation', newHeading);
+                marker.options.set('rotate', newHeading);
+                marker.options.set('iconContentLayout', ymaps.templateLayoutFactory.createClass(
+                    '<div class="rotating-icon" style="transform: rotate(' + newHeading + 'deg);">' +
+                    '<img src="img/navi-arrow.webp"/>' +
+                    '</div>'
+                ));
                 requestAnimationFrame(animateRotation);
             } else {
-                marker.options.set('iconRotation', endHeading);
+                marker.options.set('iconContentLayout', ymaps.templateLayoutFactory.createClass(
+                    '<div class="rotating-icon" style="transform: rotate(' + endHeading + 'deg);">' +
+                    '<img src="img/navi-arrow.webp"/>' +
+                    '</div>'
+                ));
             }
         };
     animateRotation();
@@ -479,5 +503,5 @@ function getZoom(speed){
     return zoom;
 }
 
-//loadMapPage();
+//coloadMapPage();
 
