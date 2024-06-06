@@ -139,6 +139,7 @@ function loadMapPage(ctx, next) {
         .then(html => {
             document.getElementById('content').innerHTML = html;
             calcMapHeight();
+            showCamera();
             createMap();
         });
 }
@@ -336,7 +337,7 @@ function init(){
     });
 
     console.log('пробую добавить трек маршрут');
-    gpxParser(map,'Налычево_Таловские');
+    //gpxParser(map,'Налычево_Таловские');
     //addParkBoundaries('Налычево');
 
     /*map.events.add('click', function (e) {
@@ -369,6 +370,7 @@ function startTacker() {
 function stopTracker(id){
     navigator.geolocation.clearWatch(id);
     disableInsomnia();
+    hideCamera();
     firstStep = true;
 }
 
@@ -585,6 +587,34 @@ function getZoom(speed){
     return zoom;
 }
 
+function showCamera(){
+    $(document).ready(function () {
+        var footerRow = $('#footerRow');
+        var middleCol = $('#middleCol');
+        var middleIcon = middleCol.find('.expand');
+
+        middleCol.removeClass('hidden');
+        footerRow.removeClass('row-cols-4').addClass('row-cols-5');
+        setTimeout(function () {
+            middleIcon.addClass('expanded');
+        }, 50); // Добавляем небольшую задержку для активации анимации
+    });
+}
+
+function hideCamera() {
+    $(document).ready(function () {
+        var footerRow = $('#footerRow');
+        var middleCol = $('#middleCol');
+        var middleIcon = middleCol.find('.expand');
+
+        middleIcon.removeClass('expanded');
+        setTimeout(function () {
+            middleCol.addClass('hidden');
+            footerRow.removeClass('row-cols-5').addClass('row-cols-4');
+        }, 500); // Добавляем задержку, чтобы завершить анимацию
+    });
+}
+
 function addParkBoundaries(parkName) {
     fetch('borders/' + parkName + '.osm') // Путь к вашему файлу с границами парка Налычево
         .then(response => response.text())
@@ -645,5 +675,5 @@ function stopMockGeolocation() {
     clearInterval(watchID);
 }
 
-loadMapPage();
+//loadMapPage();
 

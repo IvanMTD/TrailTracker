@@ -1,9 +1,7 @@
-@import url('https://fonts.googleapis.com/css2?family=PT+Sans+Narrow:wght@400;700&display=swap');
-*{
-    font-family: "PT Sans Narrow", sans-serif;
-    font-weight: 400;
-    font-style: normal;
-}
+@import url("../css/nobleui.css");
+@import url("../css/stile.css");
+@import url("../css/fonts.css");
+@import url("../css/iconfont.css");
 
 body, html {
     height: 100%;
@@ -81,4 +79,19 @@ header, footer {
     display: block;
     width: 100%; /* Устанавливаем ширину изображения */
     height: 100%; /* Устанавливаем высоту изображения */
+}
+
+.hidden {
+    display: none;
+}
+
+.expand {
+    transition: transform 0.5s, opacity 0.5s;
+    transform: scale(0);
+    opacity: 0;
+}
+
+.expanded {
+    transform: scale(1);
+    opacity: 1;
 }
