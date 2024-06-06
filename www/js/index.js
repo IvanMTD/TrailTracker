@@ -337,6 +337,7 @@ function init(){
 
     console.log('пробую добавить трек маршрут');
     gpxParser(map,'Налычево_Таловские');
+    //addParkBoundaries('Налычево');
 
     /*map.events.add('click', function (e) {
         var coords = e.get('coords');
@@ -362,6 +363,7 @@ function startTacker() {
         maximumAge: 0 // Запрашиваем всегда только свежие данные
         }
     );
+    //startMockGeolocation();
 }
 
 function stopTracker(id){
@@ -446,7 +448,16 @@ function smoothMoveMarker(marker, newPosition) {
     animateMarker();
 }
 
-// Плавное вращение маркера
+function correctHeading(startHeading, endHeading) {
+    var delta = endHeading - startHeading;
+    if (delta > 180) {
+        delta -= 360;
+    } else if (delta < -180) {
+        delta += 360;
+    }
+    return delta;
+}
+
 function smoothRotateMarker(marker, newHeading) {
     var startHeading = marker.options.get('rotate'),
         endHeading = newHeading,
@@ -455,16 +466,28 @@ function smoothRotateMarker(marker, newHeading) {
         animateRotation = function() {
             var time = new Date().getTime() - startTime,
                 percent = time / duration;
+
+            // Коррекция угла для плавного вращения
+            var delta = correctHeading(startHeading, endHeading);
+
             if (percent < 1) {
-                var newHeading = startHeading + (endHeading - startHeading) * percent;
-                marker.options.set('rotate', newHeading);
+                var interpolatedHeading = startHeading + delta * percent;
+                interpolatedHeading = (interpolatedHeading + 360) % 360;
+
+                marker.options.set('rotate', interpolatedHeading);
                 marker.options.set('iconContentLayout', ymaps.templateLayoutFactory.createClass(
-                    '<div class="rotating-icon" style="transform: rotate(' + newHeading + 'deg);">' +
+                    '<div class="rotating-icon" style="transform: rotate(' + interpolatedHeading + 'deg);">' +
                     '<img src="img/navi-arrow.webp"/>' +
                     '</div>'
                 ));
                 requestAnimationFrame(animateRotation);
             } else {
+                if (endHeading < 0) {
+                    endHeading += 360;
+                } else if (endHeading >= 360) {
+                    endHeading -= 360;
+                }
+                marker.options.set('rotate', endHeading);
                 marker.options.set('iconContentLayout', ymaps.templateLayoutFactory.createClass(
                     '<div class="rotating-icon" style="transform: rotate(' + endHeading + 'deg);">' +
                     '<img src="img/navi-arrow.webp"/>' +
@@ -560,6 +583,66 @@ function getZoom(speed){
         zoom = 17;
     }
     return zoom;
+}
+
+function addParkBoundaries(parkName) {
+    fetch('borders/' + parkName + '.osm') // Путь к вашему файлу с границами парка Налычево
+        .then(response => response.text())
+        .then(xmlData => {
+            const parkBoundaries = parseOSMData(xmlData);
+            // Отображаем границы на карте
+            parkBoundaries.forEach(coordinates => {
+                // Трансформируем координаты для правильного формата Яндекс.Карт
+                const transformedCoordinates = coordinates.map(coord => [coord[1], coord[0]]);
+                const parkBoundary = new ymaps.Polyline(
+                    coordinates,
+                    {},
+                    { strokeColor: "#FF0000", strokeWidth: 2 }
+                );
+                map.geoObjects.add(parkBoundary);
+            });
+        })
+        .catch(error => console.error("Ошибка загрузки файла OSM: ", error));
+}
+
+function startMockGeolocation() {
+    var latitude = 37.7749; // Начальные координаты
+    var longitude = -122.4194;
+    var heading = 0; // Начальное направление
+
+    watchID = setInterval(function() {
+        heading -= 19; // Увеличиваем направление
+        if (heading >= 360) {
+            heading = 0;
+        }
+        if(heading < 0){
+            heading = 360;
+        }
+
+        var position = {
+            coords: {
+                latitude: latitude,
+                longitude: longitude,
+                altitude: null,
+                accuracy: 10,
+                altitudeAccuracy: null,
+                heading: heading,
+                speed: null
+            },
+            timestamp: Date.now()
+        };
+
+        // Вызываем ваш onSuccess метод с фейковыми данными
+        onSuccess(position);
+
+        // Меняем координаты для следующего вызова
+        latitude += 0.0001;
+        longitude += 0.0001;
+    }, 1000); // Обновляем каждую секунду
+}
+
+function stopMockGeolocation() {
+    clearInterval(watchID);
 }
 
 loadMapPage();
