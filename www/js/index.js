@@ -21,6 +21,7 @@ page('/', loadMainPage);
 page('/info', loadInfoPage);
 page('/profile', loadProfilePage);
 page('/map', loadMapPage);
+page('/camera', openCamera);
 page();
 
 document.addEventListener("deviceready", onDeviceReady, false);
@@ -142,6 +143,64 @@ function loadMapPage(ctx, next) {
             showCamera();
             createMap();
         });
+}
+
+function openCamera(ctx,next){
+    navigator.camera.getPicture(cameraOnSuccess, onError, {
+        quality: 50,
+        destinationType: Camera.DestinationType.FILE_URI,
+        saveToPhotoAlbum: true, // Сохранить фото в альбом
+        correctOrientation: true // Исправить ориентацию изображения
+    });
+}
+
+function cameraOnSuccess(imageURI) {
+    var modal = document.getElementById('photoModal');
+    var img = document.getElementById('photoPreview');
+    //img.src = 'data:image/png;base64,' + imageURI;
+    img.src = imageURI;
+    modal.style.display = "block";
+    $('#testField').empty();
+    $('#testField').append(
+        '<span>' + imageURI + '</span>'
+    );
+
+
+    document.getElementById('savePhoto').addEventListener('click', function() {
+        var comment = document.getElementById('photoComment').value;
+        savePhotoData(imageURI, comment);
+        modal.style.display = "none";
+    });
+
+    document.getElementById('cancelPhoto').addEventListener('click', function() {
+        modal.style.display = "none";
+    });
+
+    document.getElementById('closeModal').addEventListener('click', function() {
+        modal.style.display = "none";
+    });
+}
+
+function savePhotoData(imageURI, comment) {
+    navigator.geolocation.getCurrentPosition(function(position) {
+        var latitude = position.coords.latitude;
+        var longitude = position.coords.longitude;
+
+        var photoData = {
+            imageURI: imageURI,
+            comment: comment,
+            latitude: latitude,
+            longitude: longitude
+        };
+
+        // Save the photo data to local storage
+        var savedPhotos = JSON.parse(localStorage.getItem('photos')) || [];
+        savedPhotos.push(photoData);
+        localStorage.setItem('photos', JSON.stringify(savedPhotos));
+
+        // Add marker to the map
+        addPhotoMarker(photoData);
+    });
 }
 
 function calcMapHeight(){
@@ -532,7 +591,7 @@ function onError(error){
         '<div class="container">' +
         '   <div class="row">' +
         '       <div class="col">' +
-        '           <p class="fs-2 text-dark">Ошибка соеденения со спутником!</p>' +
+        '           <p class="fs-2 text-dark">Ошибка!</p>' +
         '           <p>' + error + '</p>' +
         '       </div>' +
         '   </div>' +

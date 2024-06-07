@@ -37,9 +37,7 @@
         "GPS_REQUIRED": "true"
       },
       "cordova-plugin-network-information": {},
-      "cordova-plugin-camera": {
-        "ANDROIDX_CORE_VERSION": "1.6.+"
-      },
+      "cordova-plugin-camera": {},
       "cordova-plugin-media-capture": {},
       "cordova-plugin-contacts": {},
       "cordova-plugin-file": {},
