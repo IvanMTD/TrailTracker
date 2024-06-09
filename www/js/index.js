@@ -3,6 +3,9 @@ var map = null;
 var firstStep = true;
 var marker = null;
 var followUser = false;
+var drawTrack = false;
+var currentPlatform = null;
+var polyline = null;
 
 var prevTimestamp = null;
 var prevCoords = null;
@@ -17,6 +20,11 @@ var i_AltitudeAccuracy = null;
 var i_Heading = null;
 var i_Speed = null;
 
+var maxAttempts = 3;
+var attempts = 0;
+
+var track = [];
+
 page('/', loadMainPage);
 page('/info', loadInfoPage);
 page('/profile', loadProfilePage);
@@ -27,6 +35,8 @@ page();
 document.addEventListener("deviceready", onDeviceReady, false);
 
 function onDeviceReady(){
+    currentPlatform = device.platform;
+    console.log('platform is ' + currentPlatform);
     var permissions = cordova.plugins.permissions;
     console.log('Устройство готово!');
     $('#content').empty();
@@ -155,20 +165,43 @@ function openCamera(ctx,next){
 }
 
 function cameraOnSuccess(imageURI) {
+    attempts = 0;
     var modal = document.getElementById('photoModal');
     var img = document.getElementById('photoPreview');
-    //img.src = 'data:image/png;base64,' + imageURI;
-    img.src = imageURI;
-    modal.style.display = "block";
-    $('#testField').empty();
-    $('#testField').append(
-        '<span>' + imageURI + '</span>'
-    );
+    var imageContent = imageURI;
 
+    if (currentPlatform === 'browser') {
+        imageContent = 'data:image/png;base64,' + imageURI;
+        img.src = imageContent;
+    } else {
+        console.log(imageURI);
+        $('#test').empty();
+        $('#test').append(
+            '' + imageURI + ''
+        );
+        // Get the file object using the Cordova file plugin
+        window.resolveLocalFileSystemURL(imageURI, function(fileEntry) {
+            fileEntry.file(function(file) {
+                console.log('File type:', file.type); // выводим тип файла в консоль
+                console.log('File data:', file); // выводим данные файла в консоль
+
+                var blob = file.slice(0, file.size, file.type); // создаем объект Blob из объекта File с помощью метода slice
+                var reader = new FileReader();
+                reader.onloadend = function(event) {
+                    imageContent = event.target.result;
+                    console.log('Image content:', imageContent); // выводим данные изображения в консоль
+                    img.src = imageContent;
+                };
+                reader.readAsDataURL(blob);
+            });
+        });
+    }
+
+    modal.style.display = "block";
 
     document.getElementById('savePhoto').addEventListener('click', function() {
         var comment = document.getElementById('photoComment').value;
-        savePhotoData(imageURI, comment);
+        savePhotoData(imageContent, comment);
         modal.style.display = "none";
     });
 
@@ -193,14 +226,65 @@ function savePhotoData(imageURI, comment) {
             longitude: longitude
         };
 
-        // Save the photo data to local storage
+        // Получение текущих сохраненных данных
         var savedPhotos = JSON.parse(localStorage.getItem('photos')) || [];
+        console.log('Текущие сохраненные фотографии:', savedPhotos);
+
+        // Добавление новой фотографии
         savedPhotos.push(photoData);
+        console.log('Фотографии после добавления новой:', savedPhotos);
+
+        // Сохранение данных в localStorage
         localStorage.setItem('photos', JSON.stringify(savedPhotos));
 
-        // Add marker to the map
+        // Проверка, что данные действительно сохранены
+        var savedPhotosAfterSave = JSON.parse(localStorage.getItem('photos'));
+        console.log('Фотографии после сохранения:', savedPhotosAfterSave);
+
+        // Добавление маркера на карту
         addPhotoMarker(photoData);
+    }, function(error) {
+        console.error('Ошибка получения местоположения:', error);
+        if (attempts < maxAttempts) {
+            attempts++;
+            setTimeout(getCurrentPosition, 5000);
+        } else {
+            console.error('Превышено максимальное количество попыток получения местоположения.');
+        }
+    }, {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0
     });
+}
+
+function addPhotoMarker(photoData) {
+    console.log('Пробую установить маркер на карту {' + JSON.stringify(photoData) + '}');
+
+    var MyIconContentLayout = ymaps.templateLayoutFactory.createClass(
+        '<div class="rounded-circle border border-dark border-2 d-flex align-items-center justify-content-center" style="width: 50px; height: 50px; overflow: hidden;">' +
+        '   <img src="' + photoData.imageURI + '" class="img-fluid" alt="" style="width: 100%; height: 100%; object-fit: cover;" />' +
+        '</div>'
+    );
+
+    var placemark = new ymaps.Placemark(
+        [photoData.latitude, photoData.longitude],
+        {
+            balloonContent: '<img src="' + photoData.imageURI + '" style="width:100px;"><br>' + photoData.comment,
+        },
+        {
+            iconLayout: 'default#imageWithContent',
+            iconImageHref: '', // путь к изображению, если нужно
+            iconImageSize: [50, 50], // размер иконки
+            iconContentLayout: MyIconContentLayout,
+            iconImageOffset: [-25, -25], // смещение, чтобы центрировать иконку
+            balloonPanelMaxMapArea: 0 // убираем ограничение размера балуна
+        }
+    );
+
+    // Добавление маркера на карту
+    console.log('маркер создан {' + placemark + '}');
+    map.geoObjects.add(placemark);
 }
 
 function calcMapHeight(){
@@ -268,26 +352,10 @@ function init(){
             return ymaps.vow.resolve('');
         };
         layer.getZoomRange = function () {
-            return ymaps.vow.resolve([0, 18]);
-        };
-        return layer;
-    };
-
-    /*var MyLayer = function () {
-        var subdomains = ['a', 'b', 'c'];
-        var getTileUrl = function (tile, zoom) {
-            var s = subdomains[Math.floor(Math.random() * subdomains.length)];
-            return `https://${s}.tile.opentopomap.org/${zoom}/${tile[0]}/${tile[1]}.png`;
-        };
-        var layer = new ymaps.Layer(getTileUrl, {projection: ymaps.projection.sphericalMercator});
-        layer.getCopyrights = function () {
-            return ymaps.vow.resolve('');
-        };
-        layer.getZoomRange = function () {
             return ymaps.vow.resolve([0, 17]);
         };
         return layer;
-    };*/
+    };
 
     ymaps.layer.storage.add('my#layer', MyLayer);
     var myMapType = new ymaps.MapType('MY', ['my#layer']);
@@ -304,17 +372,49 @@ function init(){
     });
 
     console.log('создаю маркер');
-    marker = new ymaps.Placemark([58.0000, 160.0000], {}, {
-        iconLayout: 'default#imageWithContent',
-        iconImageHref: '',
-        rotate: 0
-    });
+    var MyIconContentLayout = ymaps.templateLayoutFactory.createClass(
+        '<div class="rotating-icon border border-dark border-2" style="transform:rotate({{options.rotate}}deg);">' +
+        '   {% include "default#image" %}',
+        '</div>'
+    );
+
+    marker = new ymaps.Placemark([58.0000, 160.0000], {},
+        {
+            iconLayout: MyIconContentLayout,
+            iconImageHref: 'img/arrow-icon.svg',
+            iconImageSize: [32, 32],
+            iconImageOffset: [0, 0],
+            iconRotate: 0
+        }
+    );
+
+    /*marker = new ymaps.Placemark(
+        [58.0000, 160.0000], {},
+        {
+            iconLayout: 'default#imageWithContent',
+            iconImageHref: '', // путь к изображению, если нужно
+            iconImageSize: [150, 150], // размер иконки
+            iconContentLayout: MyIconContentLayout,
+            iconImageOffset: [-25, -25], // смещение, чтобы центрировать иконку
+            balloonPanelMaxMapArea: 0, // убираем ограничение размера балуна
+            rotate: 0
+        }
+    );*/
+
     map.geoObjects.add(marker);
 
     console.log('создаю кнопки');
     var followButton = new ymaps.control.Button({
         data: {
             content: '<i class="bi bi-person fs-4"></i>'
+        },
+        options: {
+            selectOnClick: true
+        }
+    });
+    var trackerButton = new ymaps.control.Button({
+        data: {
+            content: '<i class="bi bi-person-walking fs-4"></i>'
         },
         options: {
             selectOnClick: true
@@ -381,23 +481,38 @@ function init(){
     });
 
     map.controls.add(buttonsContainer, { float: 'left' });
+    map.controls.add(trackerButton);
     map.controls.add(followButton);
 
     // Обработчик нажатия на кнопку
     followButton.events.add('click', function () {
         followUser = !followUser; // Меняем флаг на противоположный
         if (followUser) {
-            console.log(followUser);
             followButton.data.set('content', '<i class="bi bi-person-fill fs-4"></i>');
         } else {
-            console.log(followUser);
             followButton.data.set('content', '<i class="bi bi-person fs-4"></i>');
+        }
+    });
+
+    trackerButton.events.add('click', function () {
+        drawTrack = !drawTrack; // Меняем флаг на противоположный
+        if (drawTrack) {
+            trackerButton.data.set('content', '<i class="bi bi-person-standing fs-4"></i>');
+        } else {
+            trackerButton.data.set('content', '<i class="bi bi-person-walking fs-4"></i>');
+            track = []; // Очистите трек, если вы хотите начать новый трек
+            // Если на карте есть линия, удалите ее
+            if (polyline) {
+                map.geoObjects.remove(polyline);
+                polyline = null;
+            }
         }
     });
 
     console.log('пробую добавить трек маршрут');
     //gpxParser(map,'Налычево_Таловские');
     //addParkBoundaries('Налычево');
+    loadSavedPhotos();
 
     /*map.events.add('click', function (e) {
         var coords = e.get('coords');
@@ -416,14 +531,14 @@ function init(){
 
 function startTacker() {
     enableInsomnia();
-    watchID = navigator.geolocation.watchPosition(onSuccess,onError,
+    /*watchID = navigator.geolocation.watchPosition(onSuccess,onError,
         {
         enableHighAccuracy: true, // Запрашиваем максимально возможную точность
         //timeout: 5000, // Задаем таймаут в 5 секунд
         maximumAge: 0 // Запрашиваем всегда только свежие данные
         }
-    );
-    //startMockGeolocation();
+    );*/
+    startMockGeolocation();
 }
 
 function stopTracker(id){
@@ -479,15 +594,33 @@ function onSuccess(position){
         firstStep = false;
     }
 
+    if(drawTrack){
+        drawingTrack({lat: latitude, lng: longitude});
+    }
+
     if (followUser) {
         cameraControl(latitude, longitude, zoom);
     }
 }
 
+function drawingTrack(point){
+    track.push([point.lat,point.lng]);
+
+    // Если на карте уже есть линия, удалите ее
+    if (polyline) {
+        map.geoObjects.remove(polyline);
+    }
+
+    polyline = new ymaps.Polyline(track, {}, {
+        strokeColor: "#0000FF",
+        strokeWidth: 4
+    });
+
+    map.geoObjects.add(polyline);
+}
+
 // Плавное перемещение маркера
 function smoothMoveMarker(marker, newPosition) {
-    console.log(marker);
-    console.log(newPosition);
     var start = marker.geometry.getCoordinates(),
         end = [newPosition.lat, newPosition.lng],
         duration = 1000, // Продолжительность анимации в миллисекундах
@@ -520,7 +653,8 @@ function correctHeading(startHeading, endHeading) {
 }
 
 function smoothRotateMarker(marker, newHeading) {
-    var startHeading = marker.options.get('rotate'),
+    marker.options.set('iconRotate', newHeading);
+    /*var startHeading = marker.options.get('iconRotate'),
         endHeading = newHeading,
         duration = 1000, // Продолжительность анимации в миллисекундах
         startTime = new Date().getTime(), // Время начала анимации
@@ -535,12 +669,18 @@ function smoothRotateMarker(marker, newHeading) {
                 var interpolatedHeading = startHeading + delta * percent;
                 interpolatedHeading = (interpolatedHeading + 360) % 360;
 
-                marker.options.set('rotate', interpolatedHeading);
+                marker.options.set('iconRotate', interpolatedHeading);
+                /!*marker.options.set('iconContentLayout', ymaps.templateLayoutFactory.createClass(
+                    '<div class="rotating-icon" style="transform: rotate(' + interpolatedHeading + 'deg);">' +
+                    '   {% include "default#image" %}',
+                    '</div>'
+                ));*!/
+                /!*marker.options.set('rotate', interpolatedHeading);
                 marker.options.set('iconContentLayout', ymaps.templateLayoutFactory.createClass(
                     '<div class="rotating-icon" style="transform: rotate(' + interpolatedHeading + 'deg);">' +
-                    '<img src="img/navi-arrow.webp"/>' +
+                    '   <img src="img/navi-arrow.webp"/>' +
                     '</div>'
-                ));
+                ));*!/
                 requestAnimationFrame(animateRotation);
             } else {
                 if (endHeading < 0) {
@@ -551,15 +691,16 @@ function smoothRotateMarker(marker, newHeading) {
                 marker.options.set('rotate', endHeading);
                 marker.options.set('iconContentLayout', ymaps.templateLayoutFactory.createClass(
                     '<div class="rotating-icon" style="transform: rotate(' + endHeading + 'deg);">' +
-                    '<img src="img/navi-arrow.webp"/>' +
+                    '   <img src="img/navi-arrow.webp"/>' +
                     '</div>'
                 ));
             }
         };
-    animateRotation();
+    animateRotation();*/
 }
 
-function cameraControl(latitude,longitude,zoom){
+function cameraControl(latitude,longitude, originalZoom){
+    var zoom = Math.round(originalZoom);
     map.panTo([latitude, longitude], {
         duration: 1000 // Длительность анимации в миллисекундах
     })
@@ -694,6 +835,13 @@ function addParkBoundaries(parkName) {
         .catch(error => console.error("Ошибка загрузки файла OSM: ", error));
 }
 
+function loadSavedPhotos() {
+    var savedPhotos = JSON.parse(localStorage.getItem('photos')) || [];
+    savedPhotos.forEach(function(photoData) {
+        addPhotoMarker(photoData);
+    });
+}
+
 function startMockGeolocation() {
     var latitude = 37.7749; // Начальные координаты
     var longitude = -122.4194;
@@ -716,7 +864,7 @@ function startMockGeolocation() {
                 accuracy: 10,
                 altitudeAccuracy: null,
                 heading: heading,
-                speed: null
+                speed: 0.0001
             },
             timestamp: Date.now()
         };
@@ -734,5 +882,5 @@ function stopMockGeolocation() {
     clearInterval(watchID);
 }
 
-//loadMapPage();
+loadMapPage();
 
