@@ -151,6 +151,39 @@ function loadNalychevoPage(ctx, next){
         });
 }
 
+function loadNalychevoOnePage(ctx, next){
+    fetch('m-n-one.html')
+        .then(response => response.text())
+        .then(html => {
+            document.getElementById('content').innerHTML = html;
+            if(watchID != null){
+                stopTracker(watchID);
+            }
+        });
+}
+
+function loadNalychevoTwoPage(ctx, next){
+    fetch('m-n-two.html')
+        .then(response => response.text())
+        .then(html => {
+            document.getElementById('content').innerHTML = html;
+            if(watchID != null){
+                stopTracker(watchID);
+            }
+        });
+}
+
+function loadNalychevoThreePage(ctx, next){
+    fetch('m-n-three.html')
+        .then(response => response.text())
+        .then(html => {
+            document.getElementById('content').innerHTML = html;
+            if(watchID != null){
+                stopTracker(watchID);
+            }
+        });
+}
+
 
 function loadInfoPage(ctx, next) {
     fetch('info.html')
