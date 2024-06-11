@@ -241,3 +241,19 @@ header, footer {
 .niz-otstup{
     min-height: 2rem;
 }
+.form_otst_top{
+    height: 2rem;
+}
+.form_otst_s{
+    height: 1rem;
+}
+.lale-form{
+    margin: 0;
+    padding-top: 0.4rem;
+    padding-bottom: 0.7rem;
+    color: #4c4f54;
+    font-family: 'Roboto';
+    font-weight: 400;
+    font-size: 1.2rem;
+    line-height: 1.3;
+}
