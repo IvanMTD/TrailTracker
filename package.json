@@ -61,6 +61,7 @@
     "bootstrap": "^5.3.3",
     "bootstrap-icons": "^1.11.3",
     "esri-leaflet": "^3.0.12",
+    "file-saver": "^2.0.5",
     "fs-extra": "^11.2.0",
     "gpx-parse": "^0.10.4",
     "hammerjs": "^2.0.8",

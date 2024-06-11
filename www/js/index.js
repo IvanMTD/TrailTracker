@@ -185,26 +185,25 @@ function openCamera(ctx,next){
     navigator.camera.getPicture(cameraOnSuccess, onError, {
         quality: 50,
         destinationType: Camera.DestinationType.FILE_URI,
-        saveToPhotoAlbum: true, // Сохранить фото в альбом
+        saveToPhotoAlbum: false, // Сохранить фото в альбом
         correctOrientation: true // Исправить ориентацию изображения
     });
 }
 
+var imageContent;
+var modal = document.getElementById('photoModal');
+var img = document.getElementById('photoPreview');
+
 function cameraOnSuccess(imageURI) {
+    console.log('ВЫЗОВ!');
     attempts = 0;
-    var modal = document.getElementById('photoModal');
-    var img = document.getElementById('photoPreview');
-    var imageContent = imageURI;
+    imageContent = imageURI;
 
     if (currentPlatform === 'browser') {
         imageContent = 'data:image/png;base64,' + imageURI;
         img.src = imageContent;
     } else {
         console.log(imageURI);
-        $('#test').empty();
-        $('#test').append(
-            '' + imageURI + ''
-        );
         // Get the file object using the Cordova file plugin
         window.resolveLocalFileSystemURL(imageURI, function(fileEntry) {
             fileEntry.file(function(file) {
@@ -223,20 +222,115 @@ function cameraOnSuccess(imageURI) {
         });
     }
 
-    modal.style.display = "block";
+    modal.style.display = 'block';
 
-    document.getElementById('savePhoto').addEventListener('click', function() {
-        var comment = document.getElementById('photoComment').value;
-        savePhotoData(imageContent, comment);
-        modal.style.display = "none";
+    console.log('проверка!');
+    console.log(imageContent);
+}
+
+document.getElementById('savePhoto').addEventListener('click', function() {
+    var comment = document.getElementById('photoComment').value;
+    console.log('пробую отправить imageContent на сохранение');
+    console.log(imageContent);
+    savePhotoData(imageContent, comment);
+    modal.style.display = 'none';
+});
+
+document.getElementById('cancelPhoto').addEventListener('click', function() {
+    modal.style.display = 'none';
+});
+
+document.getElementById('closeModal').addEventListener('click', function() {
+    modal.style.display = 'none';
+});
+
+function saveToIndexedDB(data) {
+    console.log(data);
+
+    const request = indexedDB.open('photos', 1); // увеличиваем версию базы данных на 1
+
+    request.onsuccess = function () {
+        let db = request.result;
+        let transaction = db.transaction('photos', 'readwrite');
+        let photos = transaction.objectStore('photos');
+        let photosRequest = photos.add(data);
+        photosRequest.onsuccess = function (){
+            console.log('Данные сохранены в базе данных!');
+        };
+        photosRequest.onerror = function (){
+            console.log('Возникла ошибка!', photosRequest.error);
+        };
+    };
+    request.onerror = function () {
+        console.log('Error', request.errorCode);
+    };
+
+    // добавляем код для создания объектного хранилища при инициализации базы данных
+    request.onupgradeneeded = function () {
+        console.log('база данных не существует, создаю новую!');
+        var db = request.result;
+        if(!db.objectStoreNames.contains('photos')){
+            db.createObjectStore('photos', { keyPath: 'id', autoIncrement: true });
+        }
+    };
+}
+
+function loadFromIndexedDB() {
+    const request = indexedDB.open('photos', 1);
+    let photoDataList = [];
+
+    return new Promise((resolve, reject) => {
+        request.onsuccess = function () {
+            const db = request.result;
+            const transaction = db.transaction('photos', 'readonly');
+            const photos = transaction.objectStore('photos');
+            const photosRequest = photos.openCursor();
+
+            photosRequest.onsuccess = function (event) {
+                const cursor = event.target.result;
+
+                if (cursor) {
+                    photoDataList.push(cursor.value);
+                    cursor.continue();
+                } else {
+                    console.log('Данные из базы данных успешно загружены!');
+                    resolve(photoDataList);
+                }
+            };
+
+            photosRequest.onerror = function () {
+                console.log('Возникла ошибка при чтении данных из базы данных!', photosRequest.error);
+                reject(photosRequest.error);
+            };
+        };
+
+        request.onerror = function () {
+            console.log('Error', request.errorCode);
+            reject(request.errorCode);
+        };
     });
+}
 
-    document.getElementById('cancelPhoto').addEventListener('click', function() {
-        modal.style.display = "none";
+// Функция для получения файла или создания нового
+function getFile(dirEntry, fileName, successCallback, errorCallback) {
+    dirEntry.getFile(fileName, { create: true }, successCallback, errorCallback);
+}
+
+// Функция для чтения содержимого файла
+function readFile(fileEntry, successCallback, errorCallback) {
+    fileEntry.file(file => {
+        const reader = new FileReader();
+        reader.onloadend = () => successCallback(reader.result);
+        reader.onerror = errorCallback;
+        reader.readAsText(file);
     });
-
-    document.getElementById('closeModal').addEventListener('click', function() {
-        modal.style.display = "none";
+}
+// Функция для записи данных в файл
+function writeFile(fileEntry, data, successCallback, errorCallback) {
+    fileEntry.createWriter(fileWriter => {
+        fileWriter.onwriteend = successCallback;
+        fileWriter.onerror = errorCallback;
+        fileWriter.write(new Blob([data], { type: 'application/json' }));
     });
 }
 
@@ -251,68 +345,48 @@ function savePhotoData(imageURI, comment) {
         longitude: longitude
     };
 
-    // Получение текущих сохраненных данных
-    var savedPhotos = JSON.parse(localStorage.getItem('photos')) || [];
-    console.log('Текущие сохраненные фотографии:', savedPhotos);
+    console.log('Пробую отправить photoData на сохранение')
+    console.log(photoData);
 
-    // Добавление новой фотографии
-    savedPhotos.push(photoData);
-    console.log('Фотографии после добавления новой:', savedPhotos);
-
-    // Сохранение данных в localStorage
-    localStorage.setItem('photos', JSON.stringify(savedPhotos));
-
-    // Проверка, что данные действительно сохранены
-    var savedPhotosAfterSave = JSON.parse(localStorage.getItem('photos'));
-    console.log('Фотографии после сохранения:', savedPhotosAfterSave);
-
-    // Добавление маркера на карту
+    if(currentPlatform == 'browser'){
+        saveToIndexedDB(photoData);
+    }else{
+        window.resolveLocalFileSystemURL(cordova.file.dataDirectory, function (dirEntry) {
+            dirEntry.getDirectory('trailTracker', { create: true }, function (subDirEntry) {
+                getFile(subDirEntry, 'photos.json', function (fileEntry) {
+                    readFile(fileEntry, function (fileContent) {
+                        let savedPhotos = [];
+                        if (fileContent) {
+                            try {
+                                savedPhotos = JSON.parse(fileContent) || [];
+                            } catch (e) {
+                                console.warn('Ошибка при чтении или парсинге файла: ', e);
+                            }
+                        }
+                        savedPhotos.push(photoData);
+                        writeFile(fileEntry, JSON.stringify(savedPhotos, null, 2), function () {
+                            console.log('Фотографии успешно сохранены на устройстве.');
+                        }, function (e) {
+                            console.error('Ошибка при сохранении данных на устройстве: ', e);
+                        });
+                    }, function (e) {
+                        console.error('Ошибка при чтении файла: ', e);
+                    });
+                }, function (e) {
+                    console.error('Ошибка при получении файла: ', e);
+                });
+            }, function (e) {
+                console.error('Не удалось получить доступ к директории: ', e);
+            });
+        }, function (e) {
+            console.error('Не удалось получить доступ к dataDirectory: ', e);
+        });
+    }
     addPhotoMarker(photoData);
-    /*navigator.geolocation.getCurrentPosition(function(position) {
-        var latitude = position.coords.latitude;
-        var longitude = position.coords.longitude;
-
-        var photoData = {
-            imageURI: imageURI,
-            comment: comment,
-            latitude: latitude,
-            longitude: longitude
-        };
-
-        // Получение текущих сохраненных данных
-        var savedPhotos = JSON.parse(localStorage.getItem('photos')) || [];
-        console.log('Текущие сохраненные фотографии:', savedPhotos);
-
-        // Добавление новой фотографии
-        savedPhotos.push(photoData);
-        console.log('Фотографии после добавления новой:', savedPhotos);
-
-        // Сохранение данных в localStorage
-        localStorage.setItem('photos', JSON.stringify(savedPhotos));
-
-        // Проверка, что данные действительно сохранены
-        var savedPhotosAfterSave = JSON.parse(localStorage.getItem('photos'));
-        console.log('Фотографии после сохранения:', savedPhotosAfterSave);
-
-        // Добавление маркера на карту
-        addPhotoMarker(photoData);
-    }, function(error) {
-        console.error('Ошибка получения местоположения:', error);
-        if (attempts < maxAttempts) {
-            attempts++;
-            setTimeout(getCurrentPosition, 5000);
-        } else {
-            console.error('Превышено максимальное количество попыток получения местоположения.');
-        }
-    }, {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 0
-    });*/
 }
 
 function addPhotoMarker(photoData) {
-    console.log('Пробую установить маркер на карту {' + JSON.stringify(photoData) + '}');
+    //console.log('Пробую установить маркер на карту {' + JSON.stringify(photoData) + '}');
 
     var MyIconContentLayout = ymaps.templateLayoutFactory.createClass(
         '<div class="rounded-circle border border-dark border-2 d-flex align-items-center justify-content-center" style="width: 50px; height: 50px; overflow: hidden;">' +
@@ -335,8 +409,6 @@ function addPhotoMarker(photoData) {
         }
     );
 
-    // Добавление маркера на карту
-    console.log('маркер создан {' + placemark + '}');
     map.geoObjects.add(placemark);
 }
 
@@ -902,11 +974,79 @@ function addParkBoundaries(parkName) {
         .catch(error => console.error("Ошибка загрузки файла OSM: ", error));
 }
 
-function loadSavedPhotos() {
-    var savedPhotos = JSON.parse(localStorage.getItem('photos')) || [];
-    savedPhotos.forEach(function(photoData) {
-        addPhotoMarker(photoData);
+// Функция для получения файла или создания нового
+function getFile(dirEntry, fileName) {
+    return new Promise((resolve, reject) => {
+        dirEntry.getFile(fileName, { create: true }, resolve, reject);
     });
+}
+
+// Функция для чтения содержимого файла
+function readFile(fileEntry) {
+    return new Promise((resolve, reject) => {
+        fileEntry.file(file => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsText(file);
+        });
+    });
+}
+
+// Функция для загрузки данных с устройства
+function loadFromDevice() {
+    return new Promise((resolve, reject) => {
+        window.resolveLocalFileSystemURL(cordova.file.dataDirectory, function (dirEntry) {
+            dirEntry.getDirectory('trailTracker', { create: true }, function (subDirEntry) {
+                getFile(subDirEntry, 'photos.json', function (fileEntry) {
+                    readFile(fileEntry, function (fileContent) {
+                        let photoDataList = [];
+                        if (fileContent) {
+                            try {
+                                photoDataList = JSON.parse(fileContent);
+                            } catch (e) {
+                                console.error('Ошибка при парсинге данных из файла: ', e);
+                            }
+                        }
+                        resolve(photoDataList);
+                    }, function (error) {
+                        console.error('Ошибка при чтении файла: ', error);
+                        reject(error);
+                    });
+                }, function (error) {
+                    console.error('Ошибка при получении файла: ', error);
+                    reject(error);
+                });
+            }, function (error) {
+                console.error('Не удалось получить доступ к директории: ', error);
+                reject(error);
+            });
+        }, function (error) {
+            console.error('Не удалось получить доступ к dataDirectory: ', error);
+            reject(error);
+        });
+    });
+}
+
+function loadSavedPhotos() {
+    if(currentPlatform === 'browser'){
+        loadFromIndexedDB().then(function (photoDataList) {
+            Array.prototype.forEach.call(photoDataList, function (photoData) {
+                addPhotoMarker(photoData);
+            });
+        });
+    }else{
+        console.log('пробую загрузить фото')
+        loadFromDevice().then(function (photoDataList) {
+            console.log(photoDataList);
+            photoDataList.forEach(function (photoData) {
+                console.log(photoData);
+                addPhotoMarker(photoData);
+            });
+        }).catch(function (error) {
+            console.error('Ошибка при загрузке фотографий с устройства: ', error);
+        });
+    }
 }
 
 function startMockGeolocation() {
@@ -949,5 +1089,5 @@ function stopMockGeolocation() {
     clearInterval(watchID);
 }
 
-//loadNalychevoPage();
+//loadMapPage();
 
