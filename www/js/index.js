@@ -148,7 +148,7 @@ function loadNalychevoPage(ctx, next){
 }
 
 function loadNalychevoOnePage(ctx, next){
-    fetch('m-n-one.html')
+    fetch('m-n-three.html')
         .then(response => response.text())
         .then(html => {
             document.getElementById('content').innerHTML = html;
@@ -961,5 +961,5 @@ function stopMockGeolocation() {
     clearInterval(watchID);
 }
 
-loadNalychevoPage();
+loadNalychevoOnePage();
 
