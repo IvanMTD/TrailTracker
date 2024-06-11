@@ -137,7 +137,7 @@ function loadMainPage(ctx, next) {
 }
 
 function loadNalychevoPage(ctx, next){
-    fetch('nalychevo.html')
+    fetch('kluchevskoy.html')
         .then(response => response.text())
         .then(html => {
             document.getElementById('content').innerHTML = html;
@@ -148,7 +148,7 @@ function loadNalychevoPage(ctx, next){
 }
 
 function loadNalychevoOnePage(ctx, next){
-    fetch('m-n-three.html')
+    fetch('kluchevskoy.html')
         .then(response => response.text())
         .then(html => {
             document.getElementById('content').innerHTML = html;
