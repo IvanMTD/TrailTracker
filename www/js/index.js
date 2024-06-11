@@ -29,6 +29,7 @@ page('/', loadMainPage);
 
 page('/nalychevo', loadNalychevoPage);
 page('/m-n-one', loadNalychevoOnePage);
+page('/map-nal-one',loadMapNalychevoOnePage);
 page('/m-n-two', loadNalychevoTwoPage);
 page('/m-n-three', loadNalychevoThreePage);
 
@@ -208,11 +209,26 @@ function loadProfilePage(ctx, next) {
         });
 }
 
+var mapInit = 'map';
+
 function loadMapPage(ctx, next) {
     fetch('map.html')
         .then(response => response.text())
         .then(html => {
             document.getElementById('content').innerHTML = html;
+            mapInit = 'map';
+            calcMapHeight();
+            showCamera();
+            createMap();
+        });
+}
+
+function loadMapNalychevoOnePage(ctx, next) {
+    fetch('map.html')
+        .then(response => response.text())
+        .then(html => {
+            document.getElementById('content').innerHTML = html;
+            mapInit = 'map-nalychevo-one';
             calcMapHeight();
             showCamera();
             createMap();
@@ -377,42 +393,11 @@ function createMap(){
 }
 
 function init(){
+    console.log('настройка карты: ', mapInit);
     console.log('создаю собственный слой карты');
 
     var MyLayer = function () {
         var subdomains = ['a', 'b', 'c'];
-
-        /*var getTileUrl = function (tile, zoom, callback) {
-            if (typeof cordova !== 'undefined') {
-                var s = subdomains[Math.floor(Math.random() * subdomains.length)];
-                var url = `https://${s}.tile.opentopomap.org/${zoom}/${tile[0]}/${tile[1]}.png`;
-                var path = `${zoom}/${tile[0]}/`;
-                var filename = `${tile[1]}.png`;
-
-                window.resolveLocalFileSystemURL(
-                    cordova.file.dataDirectory + path + filename,
-                    function (entry) {
-                        // Тайл уже существует, используем его
-                        callback(entry.nativeURL);
-                    },
-                    function () {
-                        // Тайл не существует, скачиваем его
-                        saveTile(url, path, filename, callback);
-                    }
-                );
-            }else{
-                var s = subdomains[Math.floor(Math.random() * subdomains.length)];
-                return `https://${s}.tile.opentopomap.org/${zoom}/${tile[0]}/${tile[1]}.png`;
-            }
-        };*/
-
-        /*var layer = new ymaps.Layer(function (tile, zoom) {
-            return new ymaps.vow.Promise(function (resolve) {
-                getTileUrl(tile, zoom, function (tileUrl) {
-                    resolve(tileUrl);
-                });
-            });
-        }, { projection: ymaps.projection.sphericalMercator });*/
 
         var getTileUrl = function (tile, zoom) {
             var s = subdomains[Math.floor(Math.random() * subdomains.length)];
@@ -431,7 +416,7 @@ function init(){
     };
 
     ymaps.layer.storage.add('my#layer', MyLayer);
-    var myMapType = new ymaps.MapType('MY', ['my#layer']);
+    var myMapType = new ymaps.MapType('Топологическая', ['my#layer']);
     ymaps.mapType.storage.add('yandex#myLayer', myMapType);
 
     console.log('создаю карту');
@@ -439,10 +424,13 @@ function init(){
         center: [58.0000, 160.0000],
         zoom: 5,
         type: 'yandex#myLayer',
-        controls: []
+        controls: ['typeSelector']
     }, {
         suppressMapOpenBlock: true // Убираем надпись "открыть в Яндекс.Картах"
     });
+
+    var typeSelector = map.controls.get('typeSelector');
+    typeSelector.addMapType('yandex#myLayer', 'Топологическая');
 
     console.log('создаю маркер');
     var MyIconContentLayout = ymaps.templateLayoutFactory.createClass(
@@ -450,7 +438,6 @@ function init(){
         '   {% include "default#image" %}',
         '</div>'
     );
-
     marker = new ymaps.Placemark([58.0000, 160.0000], {},
         {
             iconLayout: MyIconContentLayout,
@@ -460,8 +447,6 @@ function init(){
             iconRotate: 0
         }
     );
-
-    map.geoObjects.add(marker);
 
     console.log('создаю кнопки');
     var followButton = new ymaps.control.Button({
@@ -540,7 +525,7 @@ function init(){
         ]
     });
 
-    map.controls.add(buttonsContainer, { float: 'left' });
+    map.controls.add(buttonsContainer, { float: 'right' });
     map.controls.add(trackerButton);
     map.controls.add(followButton);
 
@@ -549,8 +534,12 @@ function init(){
         followUser = !followUser; // Меняем флаг на противоположный
         if (followUser) {
             followButton.data.set('content', '<i class="bi bi-person-fill fs-4"></i>');
+            map.geoObjects.add(marker);
+            startTacker();
         } else {
             followButton.data.set('content', '<i class="bi bi-person fs-4"></i>');
+            map.geoObjects.remove(marker);
+            stopTrackerLight(watchID);
         }
     });
 
@@ -571,10 +560,12 @@ function init(){
     });
 
     console.log('пробую добавить трек маршрут');
+    if(mapInit === 'map-nalychevo-one'){
+        gpxParser(map,'налычево_центральный');
+    }
     //gpxParser(map,'Налычево_Таловские');
     //addParkBoundaries('Налычево');
     loadSavedPhotos();
-    startTacker();
 }
 
 function startTacker() {
@@ -587,6 +578,13 @@ function startTacker() {
         }
     );
     //startMockGeolocation();
+}
+
+function stopTrackerLight(id){
+    navigator.geolocation.clearWatch(id);
+    firstStep = true;
+    followUser = false;
+    drawTrack = false;
 }
 
 function stopTracker(id){
@@ -997,5 +995,5 @@ function stopMockGeolocation() {
     clearInterval(watchID);
 }
 
-//loadMapPage();
+//loadNalychevoPage();
 

@@ -22,7 +22,7 @@ function gpxParser(map, fileName){
                         coordinates: coordinates
                     },
                     properties: {
-                        hintContent: 'GPX маршрут'
+                        hintContent: 'Маршурт \"Налычево-Центральное\"'
                     }
                 }, {
                     strokeColor: '#9900ff',
@@ -33,6 +33,12 @@ function gpxParser(map, fileName){
 
                 // Установка маркеров
                 addMarkers(map, coordinates);
+
+                // Центрирование карты на маршруте
+                var bounds = routeLine.geometry.getBounds();
+                map.setBounds(bounds, {
+                    checkZoomRange: true // Эта опция учитывает доступные уровни зума
+                });
             });
         });
 }
@@ -44,7 +50,7 @@ function addMarkers(map, coordinates) {
     var R = 6371e3; // Радиус Земли в метрах
 
     // Установка маркера в начале маршрута
-    addMarker(map, coordinates[0], 'Старт');
+    addMarker(map, coordinates[0], 'Старт','islands#greenStretchyIcon');
 
     for (var i = 1; i < coordinates.length; i++) {
         var currentPoint = coordinates[i];
@@ -52,20 +58,21 @@ function addMarkers(map, coordinates) {
         lastPoint = currentPoint;
 
         if (distance >= kmCounter * 1000) {
-            addMarker(map, currentPoint, kmCounter + ' км');
+            addMarker(map, currentPoint, kmCounter.toString(),'islands#blueCircleDotIcon');
             kmCounter++;
         }
     }
 
     // Установка маркера в конце маршрута
-    addMarker(map, coordinates[coordinates.length - 1], 'Финиш');
+    addMarker(map, coordinates[coordinates.length - 1], 'Финиш', 'islands#redStretchyIcon');
 }
 
-function addMarker(map, coordinates, text) {
+function addMarker(map, coordinates, text, preset) {
     var marker = new ymaps.Placemark(coordinates, {
         iconContent: text
     }, {
-        preset: 'islands#blueStretchyIcon'
+        preset: preset,
+        iconColor: preset === 'islands#blueCircleDotIcon' ? '#1e98ff' : undefined // Для км маркеров - голубая кайма
     });
     map.geoObjects.add(marker);
 }
