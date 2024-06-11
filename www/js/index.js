@@ -26,7 +26,12 @@ var attempts = 0;
 var track = [];
 
 page('/', loadMainPage);
+
 page('/nalychevo', loadNalychevoPage);
+page('/m-n-one', loadNalychevoOnePage);
+page('/m-n-two', loadNalychevoTwoPage);
+page('/m-n-three', loadNalychevoThreePage);
+
 page('/info', loadInfoPage);
 page('/profile', loadProfilePage);
 page('/map', loadMapPage);
