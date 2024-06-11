@@ -27,6 +27,7 @@ var track = [];
 
 page('/', loadMainPage);
 page('/nalychevo', loadNalychevoPage);
+page('/m-n-one', loadNalychevoOnePage);
 page('/info', loadInfoPage);
 page('/profile', loadProfilePage);
 page('/map', loadMapPage);
@@ -137,6 +138,17 @@ function loadMainPage(ctx, next) {
 
 function loadNalychevoPage(ctx, next){
     fetch('nalychevo.html')
+        .then(response => response.text())
+        .then(html => {
+            document.getElementById('content').innerHTML = html;
+            if(watchID != null){
+                stopTracker(watchID);
+            }
+        });
+}
+
+function loadNalychevoOnePage(ctx, next){
+    fetch('m-n-one.html')
         .then(response => response.text())
         .then(html => {
             document.getElementById('content').innerHTML = html;
@@ -949,5 +961,5 @@ function stopMockGeolocation() {
     clearInterval(watchID);
 }
 
-//loadNalychevoPage();
+loadNalychevoPage();
 

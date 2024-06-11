@@ -3,8 +3,15 @@
     font-weight: 400;
     font-style: normal;
 }
+.m-top-bt{
+    margin: 0.8rem 0;
+}
+
 .cvet_fona{
-    background-color: #006953;
+    background-color: #ffffff;
+}
+.cvet_shapka{
+    background-color: #006a53;
 }
 .visota-kartozrki{
     min-height: 12rem;
@@ -184,20 +191,30 @@ header, footer {
     padding-top: 0.4rem;
     color: #4c4f54;
     font-family: 'Roboto';
-    font-weight: 400;
+    font-weight: 300;
     font-size: 1.2rem;
     text-align: justify;
-    line-height: 1;
+    line-height: 1.3;
 }
 .podzagolovok-mars{
     color: #006a53;
     font-family: 'Roboto';
     font-weight: 500;
     font-size: 1.3rem;
-    padding: 0;
+    padding: 0.8rem 0 0 0;
+}
+.podzagolovok-mars_bc_green{
+    color: #fff;
+    font-family: 'Roboto';
+    font-weight: 500;
+    font-size: 1.1rem;
+    padding: 1.3rem 0;
+    margin: 1.3rem 0;
+    background-color: #37886d;
+    text-align: center;
+    text-transform: uppercase;
 }
 .zagolovok-mars{
-    color: #006a53;
     color: #006a53;
     font-family: 'Roboto';
     font-weight: 500;
@@ -217,4 +234,10 @@ header, footer {
 .marshrut{
     margin: 0.3rem 0;
     padding: 0.6rem;
+}
+.text-knopki{
+    font-size: 1.3rem;
+}
+.niz-otstup{
+    min-height: 2rem;
 }
