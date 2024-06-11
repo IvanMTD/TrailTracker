@@ -14,7 +14,7 @@
     padding: 0.5rem 0 0 0.8rem;
     margin: 0;
     font-weight: 800;
-    font-size: 2rem !important;
+    font-size: 1.7rem !important;
     color: white;
     font-family: "Futura PT Extra";
 opacity: 100%;
@@ -58,9 +58,45 @@ body, html {
     min-height: 0.5rem;
 }
 .card-body{
-    background-image: url("../img/fon-1.gif");
     padding: 0;
 }
+
+#nalychevo{
+    background-image: url("../img/fon-1.gif");
+    background-repeat: repeat;
+    background-size: auto 120%;
+}
+
+#south-camchatskiy{
+    background-image: url("../img/fon-2.png");
+    background-repeat: repeat;
+    background-size: auto 120%;
+}
+
+#bistrinskiy{
+    background-image: url("../img/fon-3.png");
+    background-repeat: repeat;
+    background-size: auto 120%;
+}
+
+#kluchevskoy{
+    background-image: url("../img/fon-4.png");
+    background-repeat: repeat;
+    background-size: auto 120%;
+}
+
+#viluchenskiy{
+    background-image: url("../img/fon-5.png");
+    background-repeat: repeat;
+    background-size: auto 120%;
+}
+
+#koly-river{
+    background-image: url("../img/fon-6.png");
+    background-repeat: repeat;
+    background-size: auto 120%;
+}
+
 .wrapper {
     display: flex;
     flex-direction: column;
@@ -138,4 +174,47 @@ header, footer {
     font-weight: 300;
     font-size: 1.3rem;
     text-align: justify;
+}
+
+.bk_stat{
+    background-color: white;
+}
+.paragraph_marsh{
+    margin: 0;
+    padding-top: 0.4rem;
+    color: #4c4f54;
+    font-family: 'Roboto';
+    font-weight: 400;
+    font-size: 1.2rem;
+    text-align: justify;
+    line-height: 1;
+}
+.podzagolovok-mars{
+    color: #006a53;
+    font-family: 'Roboto';
+    font-weight: 500;
+    font-size: 1.3rem;
+    padding: 0;
+}
+.zagolovok-mars{
+    color: #006a53;
+    color: #006a53;
+    font-family: 'Roboto';
+    font-weight: 500;
+    font-size: 1.6rem;
+    padding: 0.5rem 0;
+    text-align: center;
+}
+.osn-zagolovok-mars{
+    color: #006a53;
+    font-family: 'Futura PT Demi';
+    font-weight: 600;
+    font-size: 1.5rem;
+    padding: 0;
+    text-align: center;
+    text-transform: uppercase;
+}
+.marshrut{
+    margin: 0.3rem 0;
+    padding: 0.6rem;
 }

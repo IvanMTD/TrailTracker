@@ -26,6 +26,7 @@ var attempts = 0;
 var track = [];
 
 page('/', loadMainPage);
+page('/nalychevo', loadNalychevoPage);
 page('/info', loadInfoPage);
 page('/profile', loadProfilePage);
 page('/map', loadMapPage);
@@ -36,6 +37,20 @@ document.addEventListener("deviceready", onDeviceReady, false);
 
 function onDeviceReady(){
     currentPlatform = device.platform;
+
+    if(currentPlatform !== 'browser'){
+        // Получаем текущую ориентацию экрана
+        var currentOrientation = screen.orientation.type;
+
+        // Если текущая ориентация не вертикальная, то меняем ее на вертикальную
+        if (currentOrientation !== 'portrait-primary' && currentOrientation !== 'portrait-secondary') {
+            screen.orientation.angle = 90;  // Устанавливаем угол в 90 градусов (вертикальная ориентация)
+            screen.orientation.lock('portrait');  // Фиксируем вертикальную ориентацию
+        } else {
+            screen.orientation.lock('portrait');  // Фиксируем вертикальную ориентацию, если она уже вертикальная
+        }
+    }
+
     console.log('platform is ' + currentPlatform);
     var permissions = cordova.plugins.permissions;
     console.log('Устройство готово!');
@@ -111,6 +126,17 @@ function disableInsomnia() {
 
 function loadMainPage(ctx, next) {
     fetch('main.html')
+        .then(response => response.text())
+        .then(html => {
+            document.getElementById('content').innerHTML = html;
+            if(watchID != null){
+                stopTracker(watchID);
+            }
+        });
+}
+
+function loadNalychevoPage(ctx, next){
+    fetch('nalychevo.html')
         .then(response => response.text())
         .then(html => {
             document.getElementById('content').innerHTML = html;
@@ -215,7 +241,34 @@ function cameraOnSuccess(imageURI) {
 }
 
 function savePhotoData(imageURI, comment) {
-    navigator.geolocation.getCurrentPosition(function(position) {
+    var latitude = prevCoords[0];
+    var longitude = prevCoords[1];
+
+    var photoData = {
+        imageURI: imageURI,
+        comment: comment,
+        latitude: latitude,
+        longitude: longitude
+    };
+
+    // Получение текущих сохраненных данных
+    var savedPhotos = JSON.parse(localStorage.getItem('photos')) || [];
+    console.log('Текущие сохраненные фотографии:', savedPhotos);
+
+    // Добавление новой фотографии
+    savedPhotos.push(photoData);
+    console.log('Фотографии после добавления новой:', savedPhotos);
+
+    // Сохранение данных в localStorage
+    localStorage.setItem('photos', JSON.stringify(savedPhotos));
+
+    // Проверка, что данные действительно сохранены
+    var savedPhotosAfterSave = JSON.parse(localStorage.getItem('photos'));
+    console.log('Фотографии после сохранения:', savedPhotosAfterSave);
+
+    // Добавление маркера на карту
+    addPhotoMarker(photoData);
+    /*navigator.geolocation.getCurrentPosition(function(position) {
         var latitude = position.coords.latitude;
         var longitude = position.coords.longitude;
 
@@ -255,7 +308,7 @@ function savePhotoData(imageURI, comment) {
         enableHighAccuracy: true,
         timeout: 10000,
         maximumAge: 0
-    });
+    });*/
 }
 
 function addPhotoMarker(photoData) {
@@ -373,7 +426,7 @@ function init(){
 
     console.log('создаю маркер');
     var MyIconContentLayout = ymaps.templateLayoutFactory.createClass(
-        '<div class="rotating-icon border border-dark border-2" style="transform:rotate({{options.rotate}}deg);">' +
+        '<div class="rotating-icon" style="transform:rotate({{options.rotate}}deg);">' +
         '   {% include "default#image" %}',
         '</div>'
     );
@@ -381,12 +434,14 @@ function init(){
     marker = new ymaps.Placemark([58.0000, 160.0000], {},
         {
             iconLayout: MyIconContentLayout,
-            iconImageHref: 'img/arrow-icon.svg',
-            iconImageSize: [32, 32],
-            iconImageOffset: [0, 0],
+            iconImageHref: 'img/marker-cursor.svg',
+            iconImageSize: [42, 42],
+            iconImageOffset: [-21, -21],
             iconRotate: 0
         }
     );
+
+    map.geoObjects.add(marker);
 
     /*marker = new ymaps.Placemark(
         [58.0000, 160.0000], {},
@@ -401,7 +456,7 @@ function init(){
         }
     );*/
 
-    map.geoObjects.add(marker);
+    //map.geoObjects.add(marker);
 
     console.log('создаю кнопки');
     var followButton = new ymaps.control.Button({
@@ -500,7 +555,8 @@ function init(){
             trackerButton.data.set('content', '<i class="bi bi-person-standing fs-4"></i>');
         } else {
             trackerButton.data.set('content', '<i class="bi bi-person-walking fs-4"></i>');
-            track = []; // Очистите трек, если вы хотите начать новый трек
+            // Очистите трек, если вы хотите начать новый трек
+            track = [];
             // Если на карте есть линия, удалите ее
             if (polyline) {
                 map.geoObjects.remove(polyline);
@@ -531,14 +587,14 @@ function init(){
 
 function startTacker() {
     enableInsomnia();
-    /*watchID = navigator.geolocation.watchPosition(onSuccess,onError,
+    watchID = navigator.geolocation.watchPosition(onSuccess,onError,
         {
         enableHighAccuracy: true, // Запрашиваем максимально возможную точность
         //timeout: 5000, // Задаем таймаут в 5 секунд
         maximumAge: 0 // Запрашиваем всегда только свежие данные
         }
-    );*/
-    startMockGeolocation();
+    );
+    //startMockGeolocation();
 }
 
 function stopTracker(id){
@@ -546,6 +602,8 @@ function stopTracker(id){
     disableInsomnia();
     hideCamera();
     firstStep = true;
+    followUser = false;
+    drawTrack = false;
 }
 
 function onSuccess(position){
@@ -587,7 +645,7 @@ function onSuccess(position){
     i_Speed.data.set('content', '<p>Скорость: ' + speed + '</p>');
 
     smoothMoveMarker(marker, {lat: latitude, lng: longitude});
-    smoothRotateMarker(marker, heading);
+    //smoothRotateMarker(marker, heading);
 
     if (firstStep) {
         cameraControl(latitude, longitude, zoom);
@@ -605,18 +663,17 @@ function onSuccess(position){
 
 function drawingTrack(point){
     track.push([point.lat,point.lng]);
-
-    // Если на карте уже есть линия, удалите ее
-    if (polyline) {
-        map.geoObjects.remove(polyline);
+    // Если полилиния еще не создана, создайте ее
+    if (!polyline) {
+        polyline = new ymaps.Polyline(track, {}, {
+            strokeColor: '#2f76e3',
+            strokeWidth: 6
+        });
+        map.geoObjects.add(polyline);
+    } else {
+        // Обновите геометрию полилинии, если она уже существует
+        polyline.geometry.setCoordinates(track);
     }
-
-    polyline = new ymaps.Polyline(track, {}, {
-        strokeColor: "#0000FF",
-        strokeWidth: 4
-    });
-
-    map.geoObjects.add(polyline);
 }
 
 // Плавное перемещение маркера
@@ -653,8 +710,8 @@ function correctHeading(startHeading, endHeading) {
 }
 
 function smoothRotateMarker(marker, newHeading) {
-    marker.options.set('iconRotate', newHeading);
-    /*var startHeading = marker.options.get('iconRotate'),
+    //marker.options.set('iconRotate', newHeading);
+    var startHeading = marker.options.get('iconRotate'),
         endHeading = newHeading,
         duration = 1000, // Продолжительность анимации в миллисекундах
         startTime = new Date().getTime(), // Время начала анимации
@@ -670,17 +727,26 @@ function smoothRotateMarker(marker, newHeading) {
                 interpolatedHeading = (interpolatedHeading + 360) % 360;
 
                 marker.options.set('iconRotate', interpolatedHeading);
-                /!*marker.options.set('iconContentLayout', ymaps.templateLayoutFactory.createClass(
+                marker.options.set('iconImageOffset', [-16,-16]);
+                marker.options.set('iconLayout', ymaps.templateLayoutFactory.createClass(
+                    /*'<div class="rotating-icon" style="transform: rotate(' + endHeading + 'deg);">' +
+                    '   <img src="img/arrow-icon.svg"/>' +
+                    '</div>'*/
+                    '<div class="rotating-icon border border-dark border-2" style="transform:rotate({{options.rotate}}deg);">' +
+                    '   <img src="img/arrow-icon.svg"/>',
+                    '</div>'
+                ));
+                /*marker.options.set('iconContentLayout', ymaps.templateLayoutFactory.createClass(
                     '<div class="rotating-icon" style="transform: rotate(' + interpolatedHeading + 'deg);">' +
                     '   {% include "default#image" %}',
                     '</div>'
-                ));*!/
-                /!*marker.options.set('rotate', interpolatedHeading);
+                ));*/
+                /*marker.options.set('rotate', interpolatedHeading);
                 marker.options.set('iconContentLayout', ymaps.templateLayoutFactory.createClass(
                     '<div class="rotating-icon" style="transform: rotate(' + interpolatedHeading + 'deg);">' +
                     '   <img src="img/navi-arrow.webp"/>' +
                     '</div>'
-                ));*!/
+                ));*/
                 requestAnimationFrame(animateRotation);
             } else {
                 if (endHeading < 0) {
@@ -688,15 +754,16 @@ function smoothRotateMarker(marker, newHeading) {
                 } else if (endHeading >= 360) {
                     endHeading -= 360;
                 }
-                marker.options.set('rotate', endHeading);
-                marker.options.set('iconContentLayout', ymaps.templateLayoutFactory.createClass(
-                    '<div class="rotating-icon" style="transform: rotate(' + endHeading + 'deg);">' +
-                    '   <img src="img/navi-arrow.webp"/>' +
+                marker.options.set('iconRotate', endHeading);
+                marker.options.set('iconImageOffset', [-16,-16]);
+                marker.options.set('iconLayout', ymaps.templateLayoutFactory.createClass(
+                    '<div class="rotating-icon border border-dark border-2" style="transform:rotate({{options.rotate}}deg);">' +
+                    '   <img src="img/arrow-icon.svg"/>',
                     '</div>'
                 ));
             }
         };
-    animateRotation();*/
+    animateRotation();
 }
 
 function cameraControl(latitude,longitude, originalZoom){
@@ -882,5 +949,5 @@ function stopMockGeolocation() {
     clearInterval(watchID);
 }
 
-loadMapPage();
+//loadNalychevoPage();
 

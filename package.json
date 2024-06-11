@@ -25,7 +25,10 @@
     "cordova-plugin-insomnia": "^4.3.0",
     "cordova-plugin-media-capture": "^5.0.0",
     "cordova-plugin-network-information": "^3.0.0",
-    "cordova.plugins.diagnostic": "github:dpa99c/cordova-diagnostic-plugin"
+    "cordova-plugin-screen-orientation": "^3.0.4",
+    "cordova-plugin-splashscreen": "^6.0.1",
+    "cordova.plugins.diagnostic": "github:dpa99c/cordova-diagnostic-plugin",
+    "es6-promise-plugin": "^4.2.2"
   },
   "cordova": {
     "platforms": [
@@ -48,7 +51,9 @@
       "cordova-plugin-android-permissions": {},
       "cordova-plugin-device": {},
       "cordova-plugin-insomnia": {},
-      "cordova-plugin-file-transfer": {}
+      "cordova-plugin-file-transfer": {},
+      "cordova-plugin-splashscreen": {},
+      "cordova-plugin-screen-orientation": {}
     }
   },
   "dependencies": {

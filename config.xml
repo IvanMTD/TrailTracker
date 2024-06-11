@@ -40,6 +40,11 @@
         <icon src="assets/xhdpi.png" density="xhdpi" />
         <icon src="assets/xxhdpi.png" density="xxhdpi" />
         <icon src="assets/xxxhdpi.png" density="xxxhdpi" />
+
+        <!-- Set the SplashScreen preferences -->
+        <preference name="AndroidWindowSplashScreenAnimatedIcon" value="assets/drawable/splash.png" />
+        <preference name="AndroidWindowSplashScreenBackground" value="#FFFFFF" />
+        <preference name="AndroidWindowSplashScreenDuration" value="3000" />
     </platform>
 </widget>
 
