@@ -195,26 +195,18 @@ var modal = document.getElementById('photoModal');
 var img = document.getElementById('photoPreview');
 
 function cameraOnSuccess(imageURI) {
-    console.log('ВЫЗОВ!');
-    attempts = 0;
     imageContent = imageURI;
 
     if (currentPlatform === 'browser') {
         imageContent = 'data:image/png;base64,' + imageURI;
         img.src = imageContent;
     } else {
-        console.log(imageURI);
-        // Get the file object using the Cordova file plugin
         window.resolveLocalFileSystemURL(imageURI, function(fileEntry) {
             fileEntry.file(function(file) {
-                console.log('File type:', file.type); // выводим тип файла в консоль
-                console.log('File data:', file); // выводим данные файла в консоль
-
                 var blob = file.slice(0, file.size, file.type); // создаем объект Blob из объекта File с помощью метода slice
                 var reader = new FileReader();
                 reader.onloadend = function(event) {
                     imageContent = event.target.result;
-                    console.log('Image content:', imageContent); // выводим данные изображения в консоль
                     img.src = imageContent;
                 };
                 reader.readAsDataURL(blob);
@@ -223,15 +215,10 @@ function cameraOnSuccess(imageURI) {
     }
 
     modal.style.display = 'block';
-
-    console.log('проверка!');
-    console.log(imageContent);
 }
 
 document.getElementById('savePhoto').addEventListener('click', function() {
     var comment = document.getElementById('photoComment').value;
-    console.log('пробую отправить imageContent на сохранение');
-    console.log(imageContent);
     savePhotoData(imageContent, comment);
     modal.style.display = 'none';
 });
@@ -244,160 +231,83 @@ document.getElementById('closeModal').addEventListener('click', function() {
     modal.style.display = 'none';
 });
 
-function saveToIndexedDB(data) {
-    console.log(data);
-
-    const request = indexedDB.open('photos', 1); // увеличиваем версию базы данных на 1
-
-    request.onsuccess = function () {
-        let db = request.result;
-        let transaction = db.transaction('photos', 'readwrite');
-        let photos = transaction.objectStore('photos');
-        let photosRequest = photos.add(data);
-        photosRequest.onsuccess = function (){
-            console.log('Данные сохранены в базе данных!');
-        };
-        photosRequest.onerror = function (){
-            console.log('Возникла ошибка!', photosRequest.error);
-        };
-    };
-    request.onerror = function () {
-        console.log('Error', request.errorCode);
-    };
-
-    // добавляем код для создания объектного хранилища при инициализации базы данных
-    request.onupgradeneeded = function () {
-        console.log('база данных не существует, создаю новую!');
-        var db = request.result;
-        if(!db.objectStoreNames.contains('photos')){
-            db.createObjectStore('photos', { keyPath: 'id', autoIncrement: true });
-        }
-    };
-}
-
-function loadFromIndexedDB() {
-    const request = indexedDB.open('photos', 1);
-    let photoDataList = [];
-
-    return new Promise((resolve, reject) => {
-        request.onsuccess = function () {
-            const db = request.result;
-            const transaction = db.transaction('photos', 'readonly');
-            const photos = transaction.objectStore('photos');
-            const photosRequest = photos.openCursor();
-
-            photosRequest.onsuccess = function (event) {
-                const cursor = event.target.result;
-
-                if (cursor) {
-                    photoDataList.push(cursor.value);
-                    cursor.continue();
-                } else {
-                    console.log('Данные из базы данных успешно загружены!');
-                    resolve(photoDataList);
-                }
-            };
-
-            photosRequest.onerror = function () {
-                console.log('Возникла ошибка при чтении данных из базы данных!', photosRequest.error);
-                reject(photosRequest.error);
-            };
-        };
-
-        request.onerror = function () {
-            console.log('Error', request.errorCode);
-            reject(request.errorCode);
-        };
-    });
-}
-
-// Функция для получения файла или создания нового
-function getFile(dirEntry, fileName, successCallback, errorCallback) {
-    dirEntry.getFile(fileName, { create: true }, successCallback, errorCallback);
-}
-
-// Функция для чтения содержимого файла
-function readFile(fileEntry, successCallback, errorCallback) {
-    fileEntry.file(file => {
-        const reader = new FileReader();
-        reader.onloadend = () => successCallback(reader.result);
-        reader.onerror = errorCallback;
-        reader.readAsText(file);
-    });
-}
-// Функция для записи данных в файл
-function writeFile(fileEntry, data, successCallback, errorCallback) {
-    fileEntry.createWriter(fileWriter => {
-        fileWriter.onwriteend = successCallback;
-        fileWriter.onerror = errorCallback;
-        fileWriter.write(new Blob([data], { type: 'application/json' }));
-    });
-}
-
 function savePhotoData(imageURI, comment) {
     var latitude = prevCoords[0];
     var longitude = prevCoords[1];
 
     var photoData = {
-        imageURI: imageURI,
+        image: imageURI,
         comment: comment,
         latitude: latitude,
         longitude: longitude
     };
-
-    console.log('Пробую отправить photoData на сохранение')
-    console.log(photoData);
-
-    if(currentPlatform == 'browser'){
-        saveToIndexedDB(photoData);
-    }else{
-        window.resolveLocalFileSystemURL(cordova.file.dataDirectory, function (dirEntry) {
-            dirEntry.getDirectory('trailTracker', { create: true }, function (subDirEntry) {
-                getFile(subDirEntry, 'photos.json', function (fileEntry) {
-                    readFile(fileEntry, function (fileContent) {
-                        let savedPhotos = [];
-                        if (fileContent) {
-                            try {
-                                savedPhotos = JSON.parse(fileContent) || [];
-                            } catch (e) {
-                                console.warn('Ошибка при чтении или парсинге файла: ', e);
-                            }
-                        }
-                        savedPhotos.push(photoData);
-                        writeFile(fileEntry, JSON.stringify(savedPhotos, null, 2), function () {
-                            console.log('Фотографии успешно сохранены на устройстве.');
-                        }, function (e) {
-                            console.error('Ошибка при сохранении данных на устройстве: ', e);
-                        });
-                    }, function (e) {
-                        console.error('Ошибка при чтении файла: ', e);
-                    });
-                }, function (e) {
-                    console.error('Ошибка при получении файла: ', e);
-                });
-            }, function (e) {
-                console.error('Не удалось получить доступ к директории: ', e);
-            });
-        }, function (e) {
-            console.error('Не удалось получить доступ к dataDirectory: ', e);
-        });
-    }
+    saveData(photoData);
     addPhotoMarker(photoData);
 }
 
-function addPhotoMarker(photoData) {
-    //console.log('Пробую установить маркер на карту {' + JSON.stringify(photoData) + '}');
+function saveData(data){
+    var db = window.sqlitePlugin.openDatabase({ name: 'trail.db', location: 'default' });
+    db.transaction(function (tx) {
+        tx.executeSql(
+            'CREATE TABLE IF NOT EXISTS photos (id INTEGER PRIMARY KEY AUTOINCREMENT, image TEXT, comment TEXT, latitude TEXT, longitude TEXT)'
+        );
+        tx.executeSql('INSERT INTO photos (image, comment, latitude, longitude) VALUES (?, ?, ?, ?)', [
+            data.image,
+            data.comment,
+            data.latitude,
+            data.longitude
+        ]);
+    });
+}
 
+function loadData(callback) {
+    var db = window.sqlitePlugin.openDatabase({ name: 'trail.db', location: 'default' });
+
+    db.transaction(function (tx) {
+        tx.executeSql(
+            'CREATE TABLE IF NOT EXISTS photos (id INTEGER PRIMARY KEY AUTOINCREMENT, image TEXT, comment TEXT, latitude TEXT, longitude TEXT)'
+        );
+    });
+
+    var data = [];
+
+    db.transaction(function (tx) {
+        tx.executeSql('SELECT * FROM photos', [], function (tx, results) {
+            var len = results.rows.length;
+            for (let i = 0; i < len; i++) {
+                let row = results.rows.item(i);
+                data.push(row);
+            }
+            console.log('Data loaded:', data);
+            callback(data);
+        });
+    }, function (error) {
+        console.error('Error loading data:', error);
+        callback(data); // Возвращаем пустой массив в случае ошибки
+    });
+}
+
+function addPhotoMarker(photoData) {
     var MyIconContentLayout = ymaps.templateLayoutFactory.createClass(
         '<div class="rounded-circle border border-dark border-2 d-flex align-items-center justify-content-center" style="width: 50px; height: 50px; overflow: hidden;">' +
-        '   <img src="' + photoData.imageURI + '" class="img-fluid" alt="" style="width: 100%; height: 100%; object-fit: cover;" />' +
+        '   <img src="' + photoData.image + '" class="img-fluid" alt="" style="width: 100%; height: 100%; object-fit: cover;" />' +
         '</div>'
     );
+
+    var myBalloonContent = '' +
+        '<div class="card">\n' +
+        '   <div class="photo-container" style="position: relative; width: 100%; padding-bottom: 100%; overflow: hidden;">\n' +
+        '       <img id="photoPreview" class="card-img-top" src="' + photoData.image + '" alt="Photo" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover;">\n' +
+        '   </div>' +
+        '   <div class="card-body">\n' +
+        '       <p class="card-text">' + photoData.comment + '</p>\n' +
+        '   </div>\n' +
+        '</div>';
 
     var placemark = new ymaps.Placemark(
         [photoData.latitude, photoData.longitude],
         {
-            balloonContent: '<img src="' + photoData.imageURI + '" style="width:100px;"><br>' + photoData.comment,
+            balloonContent: myBalloonContent,
         },
         {
             iconLayout: 'default#imageWithContent',
@@ -515,21 +425,6 @@ function init(){
 
     map.geoObjects.add(marker);
 
-    /*marker = new ymaps.Placemark(
-        [58.0000, 160.0000], {},
-        {
-            iconLayout: 'default#imageWithContent',
-            iconImageHref: '', // путь к изображению, если нужно
-            iconImageSize: [150, 150], // размер иконки
-            iconContentLayout: MyIconContentLayout,
-            iconImageOffset: [-25, -25], // смещение, чтобы центрировать иконку
-            balloonPanelMaxMapArea: 0, // убираем ограничение размера балуна
-            rotate: 0
-        }
-    );*/
-
-    //map.geoObjects.add(marker);
-
     console.log('создаю кнопки');
     var followButton = new ymaps.control.Button({
         data: {
@@ -641,19 +536,6 @@ function init(){
     //gpxParser(map,'Налычево_Таловские');
     //addParkBoundaries('Налычево');
     loadSavedPhotos();
-
-    /*map.events.add('click', function (e) {
-        var coords = e.get('coords');
-        console.log('Координаты точки: ' + coords[0].toFixed(6) + ', ' + coords[1].toFixed(6));
-    });
-
-    // Проверка проекции карты и установка на EPSG:3857, если необходимо
-    var currentProjection = map.options.get('projection');
-    if (currentProjection !== ymaps.projection.sphericalMercator) {
-        console.log('Проекция карты отличается от EPSG:3857. Настройка проекции...');
-        map.options.set('projection', ymaps.projection.sphericalMercator);
-    }*/
-
     startTacker();
 }
 
@@ -1029,24 +911,12 @@ function loadFromDevice() {
 }
 
 function loadSavedPhotos() {
-    if(currentPlatform === 'browser'){
-        loadFromIndexedDB().then(function (photoDataList) {
-            Array.prototype.forEach.call(photoDataList, function (photoData) {
-                addPhotoMarker(photoData);
-            });
+    loadData(function(data) {
+        console.log('Получены данные: ', data);
+        data.forEach(function(photoData){
+            addPhotoMarker(photoData);
         });
-    }else{
-        console.log('пробую загрузить фото')
-        loadFromDevice().then(function (photoDataList) {
-            console.log(photoDataList);
-            photoDataList.forEach(function (photoData) {
-                console.log(photoData);
-                addPhotoMarker(photoData);
-            });
-        }).catch(function (error) {
-            console.error('Ошибка при загрузке фотографий с устройства: ', error);
-        });
-    }
+    });
 }
 
 function startMockGeolocation() {

@@ -27,6 +27,7 @@
     "cordova-plugin-network-information": "^3.0.0",
     "cordova-plugin-screen-orientation": "^3.0.4",
     "cordova-plugin-splashscreen": "^6.0.1",
+    "cordova-sqlite-storage": "^6.1.0",
     "cordova.plugins.diagnostic": "github:dpa99c/cordova-diagnostic-plugin",
     "es6-promise-plugin": "^4.2.2"
   },
@@ -53,7 +54,8 @@
       "cordova-plugin-insomnia": {},
       "cordova-plugin-file-transfer": {},
       "cordova-plugin-splashscreen": {},
-      "cordova-plugin-screen-orientation": {}
+      "cordova-plugin-screen-orientation": {},
+      "cordova-sqlite-storage": {}
     }
   },
   "dependencies": {
