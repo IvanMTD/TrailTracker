@@ -1,3 +1,49 @@
+function borderGpxParser(map, fileName) {
+    fetch('borders/' + fileName + '.gpx')
+        .then(response => response.text())
+        .then(data => {
+            gpxParse.parseGpx(data, function (error, parsedData) {
+                if (error) {
+                    console.error('Error parsing GPX file:', error);
+                    return;
+                }
+
+                var trackPoints = parsedData.tracks[0].segments[0];
+
+                // Преобразование треков в формат, пригодный для Yandex.Maps
+                var coordinates = trackPoints.map(function (point) {
+                    return [point.lat, point.lon];
+                });
+                // Создание полигона на карте
+                createPolygon(map, coordinates);
+            });
+        });
+}
+
+function createPolygon(map, coordinates) {
+    var polygon = new ymaps.GeoObject({
+        geometry: {
+            type: 'Polygon',
+            coordinates: [coordinates]
+        },
+        properties: {
+            hintContent: 'Природный парк «Налычево»'
+        }
+    }, {
+        fillColor: 'rgba(9,138,9,0.2)', // Прозрачный зеленый цвет
+        strokeColor: '#058105', // Зеленые границы
+        strokeWidth: 4
+    });
+
+    map.geoObjects.add(polygon);
+
+    // Центрирование карты на полигоне
+    var bounds = polygon.geometry.getBounds();
+    map.setBounds(bounds, {
+        checkZoomRange: true // Эта опция учитывает доступные уровни зума
+    });
+}
+
 function gpxParser(map, fileName){
     fetch('gpx/' + fileName + '.gpx')
         .then(response => response.text())
@@ -50,7 +96,7 @@ function addMarkers(map, coordinates) {
     var R = 6371e3; // Радиус Земли в метрах
 
     // Установка маркера в начале маршрута
-    addMarker(map, coordinates[0], 'Старт','islands#greenStretchyIcon');
+    addMarker(map, coordinates[0], 'Старт','islands#blueStretchyIcon');
 
     for (var i = 1; i < coordinates.length; i++) {
         var currentPoint = coordinates[i];
@@ -58,13 +104,13 @@ function addMarkers(map, coordinates) {
         lastPoint = currentPoint;
 
         if (distance >= kmCounter * 1000) {
-            addMarker(map, currentPoint, kmCounter.toString(),'islands#blueCircleDotIcon');
+            addWayMarker(map, currentPoint, kmCounter.toString());
             kmCounter++;
         }
     }
 
     // Установка маркера в конце маршрута
-    addMarker(map, coordinates[coordinates.length - 1], 'Финиш', 'islands#redStretchyIcon');
+    addMarker(map, coordinates[coordinates.length - 1], 'Финиш', 'islands#blueStretchyIcon');
 }
 
 function addMarker(map, coordinates, text, preset) {
@@ -75,6 +121,29 @@ function addMarker(map, coordinates, text, preset) {
         iconColor: preset === 'islands#blueCircleDotIcon' ? '#1e98ff' : undefined // Для км маркеров - голубая кайма
     });
     map.geoObjects.add(marker);
+}
+
+function addWayMarker(map, coordinates, text){
+    var MyIconContentLayout = ymaps.templateLayoutFactory.createClass(
+        '<div class="rounded-circle border border-primary border-2 d-flex align-items-center justify-content-center bg-white" style="width: 28px; height: 28px; overflow: hidden;">' +
+        '   <p class="text-center">' + text + '</p>' +
+        '</div>'
+    );
+
+    var placemark = new ymaps.Placemark(
+        coordinates,
+        {},
+        {
+            iconLayout: 'default#imageWithContent',
+            iconImageHref: '', // путь к изображению, если нужно
+            iconImageSize: [28, 28], // размер иконки
+            iconContentLayout: MyIconContentLayout,
+            iconImageOffset: [-14, -14], // смещение, чтобы центрировать иконку
+            balloonPanelMaxMapArea: 0 // убираем ограничение размера балуна
+        }
+    );
+
+    map.geoObjects.add(placemark);
 }
 
 function getDistanceFromLatLonInMeters(lat1, lon1, lat2, lon2) {
@@ -91,25 +160,4 @@ function getDistanceFromLatLonInMeters(lat1, lon1, lat2, lon2) {
 
     var distance = R * c; // В метрах
     return distance;
-}
-
-// Функция для сохранения тайлов в локальное хранилище
-function saveTile(url, path, filename, callback) {
-    window.resolveLocalFileSystemURL(cordova.file.dataDirectory, function (dir) {
-        dir.getDirectory(path, {create: true}, function (subdir) {
-            var filePath = subdir.nativeURL + filename;
-            var fileTransfer = new FileTransfer();
-            fileTransfer.download(
-                url,
-                filePath,
-                function (entry) {
-                    callback(entry.nativeURL);
-                },
-                function (error) {
-                    console.error("Error downloading file: " + error.code);
-                    callback(url); // Возвращаем оригинальный URL в случае ошибки
-                }
-            );
-        });
-    });
 }

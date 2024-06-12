@@ -562,6 +562,7 @@ function init(){
     console.log('пробую добавить трек маршрут');
     if(mapInit === 'map-nalychevo-one'){
         gpxParser(map,'налычево_центральный');
+        borderGpxParser(map,'налычево');
     }
     //gpxParser(map,'Налычево_Таловские');
     //addParkBoundaries('Налычево');
@@ -995,5 +996,5 @@ function stopMockGeolocation() {
     clearInterval(watchID);
 }
 
-//loadNalychevoPage();
+loadMapNalychevoOnePage();
 
