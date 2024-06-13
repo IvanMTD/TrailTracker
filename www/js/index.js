@@ -8,7 +8,7 @@ var currentPlatform = null;
 var polyline = null;
 
 var prevTimestamp = null;
-var prevCoords = null;
+var prevCoords = [0,0];
 var MAX_DISTANCE = 50; // Максимальное допустимое расстояние (в метрах) между двумя измерениями
 var MIN_TIME_DIFF = 2000; // Минимальный допустимый промежуток времени (в миллисекундах) между двумя измерениями
 
@@ -30,11 +30,14 @@ page('/', loadMainPage);
 page('/nalychevo', loadNalychevoPage);
 page('/m-n-one', loadNalychevoOnePage);
 page('/map-nal-one',loadMapNalychevoOnePage);
+page('/map-nal-two',loadMapNalychevoTwoPage);
+page('/map-nal-three',loadMapNalychevoThreePage);
 page('/m-n-two', loadNalychevoTwoPage);
 page('/m-n-three', loadNalychevoThreePage);
 
 page('/info', loadInfoPage);
 page('/profile', loadProfilePage);
+page('/reg',loadRegPage);
 page('/map', loadMapPage);
 page('/camera', openCamera);
 page();
@@ -135,9 +138,7 @@ function loadMainPage(ctx, next) {
         .then(response => response.text())
         .then(html => {
             document.getElementById('content').innerHTML = html;
-            if(watchID != null){
-                stopTracker(watchID);
-            }
+            stopTracker(watchID);
         });
 }
 
@@ -146,9 +147,7 @@ function loadNalychevoPage(ctx, next){
         .then(response => response.text())
         .then(html => {
             document.getElementById('content').innerHTML = html;
-            if(watchID != null){
-                stopTracker(watchID);
-            }
+            stopTracker(watchID);
         });
 }
 
@@ -157,9 +156,7 @@ function loadNalychevoOnePage(ctx, next){
         .then(response => response.text())
         .then(html => {
             document.getElementById('content').innerHTML = html;
-            if(watchID != null){
-                stopTracker(watchID);
-            }
+            stopTracker(watchID);
         });
 }
 
@@ -168,9 +165,7 @@ function loadNalychevoTwoPage(ctx, next){
         .then(response => response.text())
         .then(html => {
             document.getElementById('content').innerHTML = html;
-            if(watchID != null){
-                stopTracker(watchID);
-            }
+            stopTracker(watchID);
         });
 }
 
@@ -179,9 +174,7 @@ function loadNalychevoThreePage(ctx, next){
         .then(response => response.text())
         .then(html => {
             document.getElementById('content').innerHTML = html;
-            if(watchID != null){
-                stopTracker(watchID);
-            }
+            stopTracker(watchID);
         });
 }
 
@@ -191,22 +184,52 @@ function loadInfoPage(ctx, next) {
         .then(response => response.text())
         .then(html => {
             document.getElementById('content').innerHTML = html;
-            if(watchID != null){
-                stopTracker(watchID);
-            }
+            stopTracker(watchID);
             hammerTime();
         });
 }
 
-function loadProfilePage(ctx, next) {
-    fetch('profile.html')
+function loadRegPage(ctx, next) {
+    fetch('reg.html')
         .then(response => response.text())
         .then(html => {
             document.getElementById('content').innerHTML = html;
-            if(watchID != null){
-                stopTracker(watchID);
-            }
+            stopTracker(watchID);
         });
+}
+
+function loadProfilePage(ctx, next) {
+    var jwt = loadJWT();
+    if(jwt){
+        fetch('profile.html')
+            .then(response => response.text())
+            .then(html => {
+                var userData = loadUserData();
+                document.getElementById('content').innerHTML = html;
+                $('#dataUsername').empty();
+                $('#dataUsername').append(
+                    'Профиль \"' + userData.username + '\"'
+                );
+
+                $('#dataMail').empty();
+                $('#dataMail').append(
+                    '<span>' + userData.email + '</span>'
+                );
+
+                $('#dataRole').empty();
+                $('#dataRole').append(
+                    '<span>' + userData.roles[0] + '</span>'
+                );
+                stopTracker(watchID);
+            });
+    }else{
+        fetch('welcome.html')
+            .then(response => response.text())
+            .then(html => {
+                document.getElementById('content').innerHTML = html;
+                stopTracker(watchID);
+            });
+    }
 }
 
 var mapInit = 'map';
@@ -235,12 +258,38 @@ function loadMapNalychevoOnePage(ctx, next) {
         });
 }
 
+function loadMapNalychevoTwoPage(ctx, next){
+    console.log(ctx, next);
+    fetch('map.html')
+        .then(response => response.text())
+        .then(html => {
+            document.getElementById('content').innerHTML = html;
+            mapInit = 'map-nalychevo-two';
+            calcMapHeight();
+            showCamera();
+            createMap();
+        });
+}
+
+function loadMapNalychevoThreePage(ctx, next){
+    console.log(ctx, next);
+    fetch('map.html')
+        .then(response => response.text())
+        .then(html => {
+            document.getElementById('content').innerHTML = html;
+            mapInit = 'map-nalychevo-three';
+            calcMapHeight();
+            showCamera();
+            createMap();
+        });
+}
+
 function openCamera(ctx,next){
     navigator.camera.getPicture(cameraOnSuccess, onError, {
         quality: 50,
         destinationType: Camera.DestinationType.FILE_URI,
         saveToPhotoAlbum: false, // Сохранить фото в альбом
-        correctOrientation: true // Исправить ориентацию изображения
+        correctOrientation: false // Исправить ориентацию изображения
     });
 }
 
@@ -290,6 +339,8 @@ function savePhotoData(imageURI, comment) {
     var longitude = prevCoords[1];
 
     var photoData = {
+        uuid: generateUUID(),
+        eventdate: prevTimestamp,
         image: imageURI,
         comment: comment,
         latitude: latitude,
@@ -303,9 +354,11 @@ function saveData(data){
     var db = window.sqlitePlugin.openDatabase({ name: 'trail.db', location: 'default' });
     db.transaction(function (tx) {
         tx.executeSql(
-            'CREATE TABLE IF NOT EXISTS photos (id INTEGER PRIMARY KEY AUTOINCREMENT, image TEXT, comment TEXT, latitude TEXT, longitude TEXT)'
+            'CREATE TABLE IF NOT EXISTS photos (id INTEGER PRIMARY KEY AUTOINCREMENT, uuid TEXT, eventdate TEXT, image TEXT, comment TEXT, latitude TEXT, longitude TEXT)'
         );
-        tx.executeSql('INSERT INTO photos (image, comment, latitude, longitude) VALUES (?, ?, ?, ?)', [
+        tx.executeSql('INSERT INTO photos (uuid, eventdate, image, comment, latitude, longitude) VALUES (?, ?,  ?, ?, ?, ?)', [
+            data.uuid,
+            data.timestamp,
             data.image,
             data.comment,
             data.latitude,
@@ -319,7 +372,7 @@ function loadData(callback) {
 
     db.transaction(function (tx) {
         tx.executeSql(
-            'CREATE TABLE IF NOT EXISTS photos (id INTEGER PRIMARY KEY AUTOINCREMENT, image TEXT, comment TEXT, latitude TEXT, longitude TEXT)'
+            'CREATE TABLE IF NOT EXISTS photos (id INTEGER PRIMARY KEY AUTOINCREMENT, uuid TEXT, eventdate TEXT, image TEXT, comment TEXT, latitude TEXT, longitude TEXT)'
         );
     });
 
@@ -341,6 +394,68 @@ function loadData(callback) {
     });
 }
 
+function sendPhotoToServer(id) {
+    var parts = id.split('_');
+    var originalId = parts[parts.length - 1];
+    console.log(id,originalId);
+    var psb = document.getElementById(id);
+    var userData = JSON.parse(psb.getAttribute('user-data').replace(/&quot;/g, '"'));
+    var photoData = JSON.parse(psb.getAttribute('photo-data').replace(/&quot;/g, '"'));
+
+    console.log(userData, photoData);
+
+    var formData = new FormData();
+    formData.append('id', photoData.uuid);
+    formData.append('eventdate', photoData.eventdate);
+    formData.append('message', photoData.comment);
+    formData.append('latitude', photoData.latitude);
+    formData.append('longitude', photoData.longitude);
+    formData.append('file', dataURItoBlob(photoData.image));
+
+    console.log(formData);
+
+    fetch('https://api.beartrack.ru/v1/upload', {
+        method: 'POST',
+        headers: {
+            'x-access-token': userData.accessToken
+        },
+        body: formData
+    })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok ' + response.statusText);
+            }
+            return response.json();
+        })
+        .then(data => {
+            //var sendError = document.getElementById('send-error-' + originalId);
+            var sendError = $('#send-error-' + originalId);
+            sendError.removeClass('text-danger');
+            sendError.addClass('text-success');
+            sendError.append(
+                'Успешно загружено!'
+            );
+            console.log('Photo sent successfully', data);
+        })
+        .catch(error => {
+            var sendError = document.getElementById('send-error-' + originalId);
+            console.log(sendError);
+            sendError.innerText = error;
+            console.error('There was a problem with the fetch operation:', error);
+        });
+}
+
+function dataURItoBlob(dataURI) {
+    var byteString = atob(dataURI.split(',')[1]);
+    var mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0];
+    var ab = new ArrayBuffer(byteString.length);
+    var ia = new Uint8Array(ab);
+    for (var i = 0; i < byteString.length; i++) {
+        ia[i] = byteString.charCodeAt(i);
+    }
+    return new Blob([ab], {type: mimeString});
+}
+
 function addPhotoMarker(photoData) {
     var MyIconContentLayout = ymaps.templateLayoutFactory.createClass(
         '<div class="rounded-circle border border-dark border-2 d-flex align-items-center justify-content-center" style="width: 50px; height: 50px; overflow: hidden;">' +
@@ -348,15 +463,31 @@ function addPhotoMarker(photoData) {
         '</div>'
     );
 
-    var myBalloonContent = '' +
-        '<div class="card">\n' +
-        '   <div class="photo-container" style="position: relative; width: 100%; padding-bottom: 100%; overflow: hidden;">\n' +
-        '       <img id="photoPreview" class="card-img-top" src="' + photoData.image + '" alt="Photo" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover;">\n' +
-        '   </div>' +
-        '   <div class="card-body">\n' +
-        '       <p class="card-text">' + photoData.comment + '</p>\n' +
-        '   </div>\n' +
-        '</div>';
+    var userData = loadUserData();
+    var myBalloonContent = '';
+    if(userData){
+        myBalloonContent = '' +
+            '<div class="card" style="width: 18rem; overflow: hidden">\n' +
+            '  <div class="photo-container" style="position: relative; width: 100%; padding-bottom: 100%; overflow: hidden;">\n' +
+            '    <img id="photoPreview" class="card-img-top" src="' + photoData.image + '" alt="Photo" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover;">\n' +
+            '  </div>' +
+            '  <div class="card-body">\n' +
+            '    <p class="card-text fs-4 text-center pt-1">' + photoData.comment + '</p>\n' +
+            '    <p id="send-error-' + photoData.uuid + '" class="text-center fs-5 text-danger" style="height: 50px"></p>' +
+            '    <button type="button" id="photoSendButton_' + photoData.uuid + '" user-data="' + JSON.stringify(userData).replace(/"/g, '&quot;') + '" photo-data="' + JSON.stringify(photoData).replace(/"/g, '&quot;') + '" class="btn btn-success" onclick="sendPhotoToServer(this.id)" style="width: 100%">Отправить</button>\n' +
+            '  </div>\n' +
+            '</div>';
+    }else{
+        myBalloonContent = '' +
+            '<div class="card" style="width: 18rem; overflow: hidden">\n' +
+            '  <div class="photo-container" style="position: relative; width: 100%; padding-bottom: 100%; overflow: hidden;">\n' +
+            '    <img id="photoPreview" class="card-img-top" src="' + photoData.image + '" alt="Photo" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover;">\n' +
+            '  </div>' +
+            '  <div class="card-body">\n' +
+            '    <p class="card-text fs-4 text-center">' + photoData.comment + '</p>\n' +
+            '  </div>\n' +
+            '</div>';
+    }
 
     var placemark = new ymaps.Placemark(
         [photoData.latitude, photoData.longitude],
@@ -419,6 +550,29 @@ function init(){
     var myMapType = new ymaps.MapType('Топологическая', ['my#layer']);
     ymaps.mapType.storage.add('yandex#myLayer', myMapType);
 
+    var MyLayer2 = function () {
+        var subdomains = ['a', 'b', 'c'];
+
+        var getTileUrl = function (tile, zoom) {
+            var s = subdomains[Math.floor(Math.random() * subdomains.length)];
+            return `https://${s}.tile.openstreetmap.org/${zoom}/${tile[0]}/${tile[1]}.png`;
+        };
+
+        var layer = new ymaps.Layer(getTileUrl, {projection: ymaps.projection.sphericalMercator});
+
+        layer.getCopyrights = function () {
+            return ymaps.vow.resolve('');
+        };
+        layer.getZoomRange = function () {
+            return ymaps.vow.resolve([0, 17]);
+        };
+        return layer;
+    };
+
+    ymaps.layer.storage.add('street#layer', MyLayer2);
+    var myMapType2 = new ymaps.MapType('Openstreetmap', ['street#layer']);
+    ymaps.mapType.storage.add('yandex#streetLayer', myMapType2);
+
     console.log('создаю карту');
     map = new ymaps.Map('map', {
         center: [58.0000, 160.0000],
@@ -431,6 +585,7 @@ function init(){
 
     var typeSelector = map.controls.get('typeSelector');
     typeSelector.addMapType('yandex#myLayer', 'Топологическая');
+    typeSelector.addMapType('yandex#streetLayer', 'openstreetmap');
 
     console.log('создаю маркер');
     var MyIconContentLayout = ymaps.templateLayoutFactory.createClass(
@@ -526,7 +681,7 @@ function init(){
     });
 
     map.controls.add(buttonsContainer, { float: 'right' });
-    map.controls.add(trackerButton);
+    //map.controls.add(trackerButton, { float: 'left' });
     map.controls.add(followButton);
 
     // Обработчик нажатия на кнопку
@@ -534,11 +689,15 @@ function init(){
         followUser = !followUser; // Меняем флаг на противоположный
         if (followUser) {
             followButton.data.set('content', '<i class="bi bi-person-fill fs-4"></i>');
+            map.controls.remove(followButton);
+            map.controls.add(trackerButton, { float: 'left' });
+            map.controls.add(followButton);
             map.geoObjects.add(marker);
             startTacker();
         } else {
             followButton.data.set('content', '<i class="bi bi-person fs-4"></i>');
             map.geoObjects.remove(marker);
+            map.controls.remove(trackerButton);
             stopTrackerLight(watchID);
         }
     });
@@ -563,9 +722,14 @@ function init(){
     if(mapInit === 'map-nalychevo-one'){
         gpxParser(map,'налычево_центральный');
         borderGpxParser(map,'налычево');
+    }else if(mapInit === 'map-nalychevo-two'){
+        gpxParser(map,'пятая_стройка_налычево');
+        borderGpxParser(map,'налычево');
+    }else if(mapInit === 'map-nalychevo-three'){
+        gpxCombainParser(map,'налычево_таловские',true,'таловские-дзендзур',false)
+        borderGpxParser(map,'налычево');
     }
-    //gpxParser(map,'Налычево_Таловские');
-    //addParkBoundaries('Налычево');
+
     loadSavedPhotos();
 }
 
@@ -589,6 +753,7 @@ function stopTrackerLight(id){
 }
 
 function stopTracker(id){
+    console.log("проверка");
     navigator.geolocation.clearWatch(id);
     disableInsomnia();
     hideCamera();
@@ -912,41 +1077,6 @@ function readFile(fileEntry) {
     });
 }
 
-// Функция для загрузки данных с устройства
-function loadFromDevice() {
-    return new Promise((resolve, reject) => {
-        window.resolveLocalFileSystemURL(cordova.file.dataDirectory, function (dirEntry) {
-            dirEntry.getDirectory('trailTracker', { create: true }, function (subDirEntry) {
-                getFile(subDirEntry, 'photos.json', function (fileEntry) {
-                    readFile(fileEntry, function (fileContent) {
-                        let photoDataList = [];
-                        if (fileContent) {
-                            try {
-                                photoDataList = JSON.parse(fileContent);
-                            } catch (e) {
-                                console.error('Ошибка при парсинге данных из файла: ', e);
-                            }
-                        }
-                        resolve(photoDataList);
-                    }, function (error) {
-                        console.error('Ошибка при чтении файла: ', error);
-                        reject(error);
-                    });
-                }, function (error) {
-                    console.error('Ошибка при получении файла: ', error);
-                    reject(error);
-                });
-            }, function (error) {
-                console.error('Не удалось получить доступ к директории: ', error);
-                reject(error);
-            });
-        }, function (error) {
-            console.error('Не удалось получить доступ к dataDirectory: ', error);
-            reject(error);
-        });
-    });
-}
-
 function loadSavedPhotos() {
     loadData(function(data) {
         console.log('Получены данные: ', data);
@@ -996,5 +1126,11 @@ function stopMockGeolocation() {
     clearInterval(watchID);
 }
 
-loadMapNalychevoOnePage();
+function generateUUID() {
+    return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
+        (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
+    );
+}
+
+//loadRegPage();
 

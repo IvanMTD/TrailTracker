@@ -1,18 +1,42 @@
 <div class="container">
     <div class="row">
-        <div class="col">
-            <div class="card my-2 border border-2 border-dark">
-                <div class="row">
-                    <div class="col-3 d-flex">
-                        <img class="img-thumbnail rounded-circle m-auto" src="img/logo.png" rel="..." alt="..." width="64" height="64">
-                    </div>
-                    <div class="col">
-                        <div class="card-body">
-                            <p>this is body</p>
-                        </div>
+        <div class="col-12">
+
+            <div class="row">
+                <div class="col bg-secondary-subtle py-3">
+                    <h3 class="text-center"><strong id="dataUsername"></strong></h3>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col d-flex mt-4 bg-white rounded-start-4 ms-3 py-2">
+                    <p class="m-auto"><i class="bi bi-at fs-4">Mail</i></p>
+                </div>
+                <div class="col d-flex mt-4 bg-dark rounded-end-4 me-3 py-2">
+                    <p id="dataMail" class="m-auto text-white fs-4"></p>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col d-flex mt-4 bg-white rounded-start-4 ms-3 py-2">
+                    <p class="m-auto"><i class="bi bi-person fs-4">Role</i></p>
+                </div>
+                <div class="col d-flex mt-4 bg-dark rounded-end-4 me-3 py-2">
+                    <p id="dataRole" class="m-auto text-white fs-4"></p>
+                </div>
+            </div>
+
+            <div class="row my-3">
+                <div class="col-12">
+                    <div class="d-grid gap-2 px-2">
+                        <button class="btn btn-success rounded-4" type="button" onclick="doLogout()">Выйти</button>
                     </div>
                 </div>
             </div>
+
+
+        </div>
+
         </div>
     </div>
 </div>

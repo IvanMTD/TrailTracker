@@ -1,0 +1,50 @@
+<div class="container">
+    <div class="row">
+        <div class="col-12">
+
+            <div class="row">
+                <div class="col bg-secondary-subtle py-3">
+                    <h3 class="text-center"><strong>Регистрация</strong></h3>
+                </div>
+            </div>
+
+            <div class="row my-3">
+                <div class="col">
+                    <div class="form-floating mb-3">
+                        <input type="text" class="form-control" id="regUsername" placeholder="Username">
+                        <label for="regUsername"><i class="bi bi-person">Имя пользователя</i></label>
+                        <div class="invalid-feedback" id="regUsernameError">Логин занят</div>
+                    </div>
+                    <div class="form-floating mb-3">
+                        <input type="email" class="form-control" id="regMail" placeholder="name@example.com">
+                        <label for="regMail"><i class="bi bi-at">Mail</i></label>
+                        <div class="invalid-feedback" id="regMailError">Электронная почта занята</div>
+                    </div>
+                    <div class="form-floating">
+                        <input type="password" class="form-control" id="regPassword" placeholder="Password">
+                        <label for="regPassword"><i class="bi-pass">Пароль</i></label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col">
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-success" type="button" onclick="userRegistration()">Отправить</button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!--
+
+{
+  "username": "string",
+  "email": "string",
+  "password": "string"
+}
+
+-->

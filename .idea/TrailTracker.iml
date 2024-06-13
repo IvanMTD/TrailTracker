@@ -11,5 +11,8 @@
     <orderEntry type="jdk" jdkName="Android API 16 Platform" jdkType="Android SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="library" name="leaflet" level="application" />
+    <orderEntry type="library" name="hammer.js" level="application" />
+    <orderEntry type="library" name="jquery-3.6.0" level="application" />
+    <orderEntry type="library" name="page.js" level="application" />
   </component>
 </module>

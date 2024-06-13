@@ -61,6 +61,13 @@ function gpxParser(map, fileName){
                     return [point.lat, point.lon];
                 });
 
+                /*// Копируем массив координат, чтобы не менять исходный
+                var reversedCoordinates = coordinates.slice();
+                // Меняем местами начальную и конечную точки
+                reversedCoordinates.reverse();
+
+                coordinates = reversedCoordinates;*/
+
                 // Создание линии маршрута на карте
                 var routeLine = new ymaps.GeoObject({
                     geometry: {
@@ -81,12 +88,76 @@ function gpxParser(map, fileName){
                 addMarkers(map, coordinates);
 
                 // Центрирование карты на маршруте
-                var bounds = routeLine.geometry.getBounds();
+                /*var bounds = routeLine.geometry.getBounds();
                 map.setBounds(bounds, {
                     checkZoomRange: true // Эта опция учитывает доступные уровни зума
-                });
+                });*/
             });
         });
+}
+
+function gpxCombainParser(map, fileName1, reverse1, fileName2, reverse2) {
+    // Функция для загрузки и парсинга GPX файла
+    function parseGpxFile(fileName, reverse, callback) {
+        fetch('gpx/' + fileName + '.gpx')
+            .then(response => response.text())
+            .then(data => {
+                gpxParse.parseGpx(data, function(error, parsedData) {
+                    if (error) {
+                        console.error('Error parsing GPX file:', error);
+                        return;
+                    }
+
+                    var trackPoints = parsedData.tracks[0].segments[0];
+
+                    // Преобразование трека в формат, пригодный для Yandex.Maps
+                    var coordinates = trackPoints.map(function(point) {
+                        return [point.lat, point.lon];
+                    });
+
+                    // Если требуется развернуть трек
+                    if (reverse) {
+                        coordinates.reverse();
+                    }
+
+                    callback(coordinates);
+                });
+            });
+    }
+
+    // Парсим первый GPX файл
+    parseGpxFile(fileName1, reverse1, function(coordinates1) {
+        // Парсим второй GPX файл
+        parseGpxFile(fileName2, reverse2, function(coordinates2) {
+            // Объединяем координаты из двух файлов
+            var combinedCoordinates = coordinates1.concat(coordinates2);
+
+            // Создание линии маршрута на карте
+            var routeLine = new ymaps.GeoObject({
+                geometry: {
+                    type: 'LineString',
+                    coordinates: combinedCoordinates
+                },
+                properties: {
+                    hintContent: 'Маршурт \"Налычево-Центральное\"'
+                }
+            }, {
+                strokeColor: '#9900ff',
+                strokeWidth: 4
+            });
+
+            map.geoObjects.add(routeLine);
+
+            // Установка маркеров
+            addMarkers(map, combinedCoordinates);
+
+            // Центрирование карты на маршруте
+            /*var bounds = routeLine.geometry.getBounds();
+            map.setBounds(bounds, {
+                checkZoomRange: true // Эта опция учитывает доступные уровни зума
+            });*/
+        });
+    });
 }
 
 function addMarkers(map, coordinates) {
