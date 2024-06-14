@@ -6,6 +6,7 @@ var followUser = false;
 var drawTrack = false;
 var currentPlatform = null;
 var polyline = null;
+var bgGeo = null;
 
 var prevTimestamp = null;
 var prevCoords = [0,0];
@@ -87,6 +88,9 @@ function onDeviceReady(){
                 $('#data').append(
                     '<p>Разрешение есть можно работать!</p>'
                 );
+                if(currentPlatform !== 'browser'){
+                    configureBackgroundGeolocation();
+                }
                 loadMainPage();
             }
         }, function(){
@@ -105,6 +109,9 @@ function onDeviceReady(){
                 $('#data').append(
                     '<p>Разрешение получено!</p>'
                 );
+                if(currentPlatform !== 'browser'){
+                    configureBackgroundGeolocation();
+                }
                 loadMainPage();
             } else {
                 $('#data').append(
@@ -119,6 +126,41 @@ function onDeviceReady(){
     }
 
     checkPermission();
+}
+
+function configureBackgroundGeolocation() {
+    bgGeo = window.BackgroundGeolocation;
+
+    var config = {
+        desiredAccuracy: 0,
+        stationaryRadius: 20,
+        distanceFilter: 30,
+        notificationTitle: 'Background tracking',
+        notificationText: 'ENABLED',
+        debug: true,
+        interval: 5000,
+        fastestInterval: 5000,
+        activitiesInterval: 10000,
+        stopOnTerminate: false,
+        startForeground: true,
+        notificationIconColor: '#FEDD1E',
+        notificationIconLarge: 'mappointer_large',
+        notificationIconSmall: 'mappointer_small'
+    };
+
+    // Инициализация плагина
+    bgGeo.configure(config, function(location) {
+        // Обработка полученной геолокации в фоновом режиме
+        console.log('[BackgroundGeolocation] location: ', location);
+
+        // Добавление координат в track
+        track.push({ lat: location.latitude, lng: location.longitude });
+
+        // Другая ваша логика обработки координат
+    }, function (error){console.error('Ошибка при настройке плагина: ' + error);});
+
+    // Запуск службы геолокации в фоновом режиме
+    bgGeo.start();
 }
 
 function enableInsomnia() {
@@ -733,7 +775,7 @@ function init(){
     loadSavedPhotos();
 }
 
-function startTracker() {
+/*function startTracker() {
     enableInsomnia();
     watchID = navigator.geolocation.watchPosition(onSuccess,onError,
         {
@@ -743,10 +785,61 @@ function startTracker() {
         }
     );
     //startMockGeolocation();
+}*/
+
+function startTracker() {
+    console.log('Старт геолокации!');
+    enableInsomnia();
+
+    if(currentPlatform === 'browser'){
+        watchID = navigator.geolocation.watchPosition(onSuccess,onError,
+            {
+                enableHighAccuracy: true, // Запрашиваем максимально возможную точность
+                //timeout: 5000, // Задаем таймаут в 5 секунд
+                maximumAge: 0 // Запрашиваем всегда только свежие данные
+            }
+        );
+    }else{
+        if(bgGeo === null){
+            configureBackgroundGeolocation();
+        }
+
+        var options = {
+            enableHighAccuracy: true,
+            desiredAccuracy: 0,
+            stationaryRadius: 20,
+            distanceFilter: 30,
+            stopOnTerminate: false, // Позволяет работать в фоне
+            startForeground: true,
+            interval: 5000,
+            fastestInterval: 5000,
+            activitiesInterval: 10000,
+            notificationTitle: 'Background tracking',
+            notificationText: 'ENABLED',
+            debug: true
+        };
+
+        bgGeo.watchPosition(function(location) {
+            geolocationLt(location)
+        }, function(error) {
+            console.error('[BackgroundGeolocation] Error: ', error);
+        }, options);
+    }
 }
 
 function stopTrackerLight(id){
-    navigator.geolocation.clearWatch(id);
+    if(currentPlatform === 'browser'){
+        navigator.geolocation.clearWatch(id);
+    }else{
+        console.log('останавливаю трекер');
+        bgGeo.stop(function() {
+            console.log('Трекер успешно остановлен');
+        }, function(error) {
+            console.error('Ошибка при остановке трекера: ' + error);
+        });
+        bgGeo = null;
+    }
+
     firstStep = true;
     followUser = false;
     drawTrack = false;
@@ -759,6 +852,7 @@ function stopTracker(id){
 }
 
 function onSuccess(position){
+    console.log('onSuccess','обновление позиции',position);
     // Получаем координаты пользователя и некоторые другие полезные данные
     var latitude = position.coords.latitude;
     var longitude = position.coords.longitude;
@@ -768,6 +862,62 @@ function onSuccess(position){
     var heading = position.coords.heading;
     var speed = position.coords.speed;
     var timestamp = getDate(position.timestamp);
+    var zoom = getZoom(speed);
+
+    if (!prevCoords) {
+        prevCoords = [latitude, longitude];
+        prevTimestamp = timestamp;
+        return;
+    }else {
+        var distance = getDistanceFromLatLonInMeters(prevCoords[0], prevCoords[1], latitude, longitude);
+        var timeDiff = timestamp - prevTimestamp;
+
+        if (distance > MAX_DISTANCE && timeDiff < MIN_TIME_DIFF) {
+            // Если дистанция слишком большая и прошло меньше допустимого времени, игнорируем это значение
+            return;
+        }
+
+        // Обновляем предыдущие координаты и время
+        prevCoords = [latitude, longitude];
+        prevTimestamp = timestamp;
+    }
+
+    i_Latitude.data.set('content', '<p>Широта: ' + latitude + '</p>');
+    i_Longitude.data.set('content', '<p>Долгота: ' + longitude + '</p>');
+    i_Altitude.data.set('content', '<p>Высота: ' + altitude + '</p>');
+    i_Accuracy.data.set('content', '<p>Точность: ' + accuracy + '</p>');
+    i_AltitudeAccuracy.data.set('content', '<p>Точность высоты: ' + altitudeAccuracy + '</p>');
+    i_Heading.data.set('content', '<p>Направление: ' + heading + '</p>');
+    i_Speed.data.set('content', '<p>Скорость: ' + speed + '</p>');
+
+    smoothMoveMarker(marker, {lat: latitude, lng: longitude});
+    //smoothRotateMarker(marker, heading);
+
+    if (firstStep) {
+        cameraControl(latitude, longitude, zoom);
+        firstStep = false;
+    }
+
+    if(drawTrack){
+        drawingTrack({lat: latitude, lng: longitude});
+    }
+
+    if (followUser) {
+        cameraControl(latitude, longitude, zoom);
+    }
+}
+
+function geolocationLt(location){
+    console.log('geolocationLt','обновление позиции',location);
+    // Получаем координаты пользователя и некоторые другие полезные данные
+    var latitude = location.coords.latitude;
+    var longitude = location.coords.longitude;
+    var altitude = location.coords.altitude;
+    var accuracy = location.coords.accuracy;
+    var altitudeAccuracy = location.coords.altitudeAccuracy;
+    var heading = location.coords.heading;
+    var speed = location.coords.speed;
+    var timestamp = getDate(location.timestamp);
     var zoom = getZoom(speed);
 
     if (!prevCoords) {
