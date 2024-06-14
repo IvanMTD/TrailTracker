@@ -14,10 +14,8 @@
   "license": "Apache-2.0",
   "devDependencies": {
     "cordova-android": "^13.0.0",
-    "cordova-background-geolocation-lt": "^4.16.4",
     "cordova-browser": "^7.0.0",
     "cordova-plugin-android-permissions": "^1.1.5",
-    "cordova-plugin-background-fetch": "~7.2.4",
     "cordova-plugin-camera": "^7.0.0",
     "cordova-plugin-contacts": "^3.0.1",
     "cordova-plugin-device": "^2.1.0",
@@ -57,13 +55,7 @@
       "cordova-plugin-file-transfer": {},
       "cordova-plugin-splashscreen": {},
       "cordova-plugin-screen-orientation": {},
-      "cordova-sqlite-storage": {},
-      "cordova-background-geolocation-lt": {
-        "GOOGLE_API_VERSION": "20.+",
-        "HMS_LOCATION_VERSION": "6.9.0.300",
-        "OKHTTP_VERSION": "3.12.+",
-        "EVENTBUS_VERSION": "3.3.1"
-      }
+      "cordova-sqlite-storage": {}
     }
   },
   "dependencies": {

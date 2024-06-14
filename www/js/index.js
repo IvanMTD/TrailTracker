@@ -693,7 +693,7 @@ function init(){
             map.controls.add(trackerButton, { float: 'left' });
             map.controls.add(followButton);
             map.geoObjects.add(marker);
-            startTacker();
+            startTracker();
         } else {
             followButton.data.set('content', '<i class="bi bi-person fs-4"></i>');
             map.geoObjects.remove(marker);
@@ -733,7 +733,7 @@ function init(){
     loadSavedPhotos();
 }
 
-function startTacker() {
+function startTracker() {
     enableInsomnia();
     watchID = navigator.geolocation.watchPosition(onSuccess,onError,
         {
@@ -753,13 +753,9 @@ function stopTrackerLight(id){
 }
 
 function stopTracker(id){
-    console.log("проверка");
-    navigator.geolocation.clearWatch(id);
+    stopTrackerLight(id);
     disableInsomnia();
     hideCamera();
-    firstStep = true;
-    followUser = false;
-    drawTrack = false;
 }
 
 function onSuccess(position){

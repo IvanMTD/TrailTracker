@@ -45,6 +45,7 @@
         <preference name="AndroidWindowSplashScreenAnimatedIcon" value="assets/drawable/splash.png" />
         <preference name="AndroidWindowSplashScreenBackground" value="#FFFFFF" />
         <preference name="AndroidWindowSplashScreenDuration" value="3000" />
+        <preference name="Fullscreen" value="true" />
     </platform>
 </widget>
 
