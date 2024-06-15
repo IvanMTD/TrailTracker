@@ -837,7 +837,6 @@ function stopTrackerLight(id){
         }, function(error) {
             console.error('Ошибка при остановке трекера: ' + error);
         });
-        bgGeo = null;
     }
 
     firstStep = true;
