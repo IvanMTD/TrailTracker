@@ -138,3 +138,28 @@ function userRegistration(){
             }
         });
 }
+
+function addPerson(){
+    $('#add-person').append('' +
+        '               <div class="row py-2 pt-3 border-bottom border-2">\n' +
+        '                    <div class="col">\n' +
+        '                        <div class="form-floating mb-3">\n' +
+        '                            <input type="text" class="form-control" id="lastname" placeholder="lastname">\n' +
+        '                            <label for="lastname">Фамилия</label>\n' +
+        '                        </div>\n' +
+        '                        <div class="form-floating mb-3">\n' +
+        '                            <input type="text" class="form-control" id="name" placeholder="name">\n' +
+        '                            <label for="name">Имя</label>\n' +
+        '                        </div>\n' +
+        '                        <div class="form-floating mb-3">\n' +
+        '                            <input type="text" class="form-control" id="middleName" placeholder="middleName">\n' +
+        '                            <label for="middleName">Отчество</label>\n' +
+        '                        </div>\n' +
+        '                        <div class="form-floating mb-3">\n' +
+        '                            <input type="date" class="form-control" id="date" placeholder="date">\n' +
+        '                            <label for="date">Дата рождения</label>\n' +
+        '                        </div>\n' +
+        '                    </div>\n' +
+        '                </div>'
+    );
+}

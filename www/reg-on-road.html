@@ -1,0 +1,51 @@
+<div class="container">
+    <div class="row">
+        <div class="col-12">
+
+            <div class="row">
+                <div class="col bg-secondary-subtle py-3">
+                    <p class="fs-4 text-center"><strong>Регистрация</strong></p>
+                </div>
+            </div>
+
+            <div class="row my-3">
+                <div class="col d-grid pe-3">
+                    <a class="btn btn-success d-flex" href="/map">
+                        <i class="icon feather icon-compass fs-4 ms-auto mt-auto mb-auto pe-1"></i>
+                        <span class="fs-4 me-auto mt-auto mb-auto">Выйти на маршрут</span>
+                    </a>
+                </div>
+            </div>
+
+            <div id="add-person">
+                <div class="row py-2 border-bottom border-2">
+                    <div class="col">
+                        <div class="form-floating mb-3">
+                            <input type="text" class="form-control" id="lastname" placeholder="lastname">
+                            <label for="lastname">Фамилия</label>
+                        </div>
+                        <div class="form-floating mb-3">
+                            <input type="text" class="form-control" id="name" placeholder="name">
+                            <label for="name">Имя</label>
+                        </div>
+                        <div class="form-floating mb-3">
+                            <input type="text" class="form-control" id="middleName" placeholder="middleName">
+                            <label for="middleName">Отчество</label>
+                        </div>
+                        <div class="form-floating mb-3">
+                            <input type="date" class="form-control" id="date" placeholder="date">
+                            <label for="date">Дата рождения</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row pt-3">
+                <div class="col">
+                    <button id="add-person-button" type="button" class="btn btn-success btn-lg w-100" onclick="addPerson()">Добавить участника</button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>

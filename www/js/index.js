@@ -7,6 +7,7 @@ var drawTrack = false;
 var currentPlatform = null;
 var polyline = null;
 var bgGeo = null;
+var mapInit = 'map';
 
 var prevTimestamp = null;
 var prevCoords = [0,0];
@@ -29,12 +30,31 @@ var track = [];
 page('/', loadMainPage);
 
 page('/nalychevo', loadNalychevoPage);
+
 page('/m-n-one', loadNalychevoOnePage);
 page('/map-nal-one',loadMapNalychevoOnePage);
-page('/map-nal-two',loadMapNalychevoTwoPage);
-page('/map-nal-three',loadMapNalychevoThreePage);
+
 page('/m-n-two', loadNalychevoTwoPage);
+page('/map-nal-two',loadMapNalychevoTwoPage);
+
 page('/m-n-three', loadNalychevoThreePage);
+page('/map-nal-three',loadMapNalychevoThreePage);
+
+page('/bistrinskiy', loadBistinskyPage);
+
+page('/m-b-one', loadBistrinskiyOnePage);
+page('/map-bir-one', loadMapBistrinskiyOnePage);
+
+page('/m-b-two', loadBistrinskiyTwoPage);
+page('/map-bir-two', loadMapBistrinskiyTwoPage);
+
+page('/m-b-three', loadBistrinskiyThreePage);
+page('/map-bir-three', loadMapBistrinskiyThreePage);
+
+page('/south-cam', loadSouthCamPage);
+
+page('/m-sc-one', loadSouthCamOnePage);
+page('/map-sc-one', loadMapSouthCamOnePage);
 
 page('/info', loadInfoPage);
 page('/profile', loadProfilePage);
@@ -220,6 +240,96 @@ function loadNalychevoThreePage(ctx, next){
         });
 }
 
+function loadBistinskyPage(ctx, next){
+    fetch('bistrinskiy.html')
+        .then(response => response.text())
+        .then(html => {
+            document.getElementById('content').innerHTML = html;
+            stopTracker(watchID);
+        });
+}
+
+function loadBistrinskiyOnePage(ctx, next){
+    fetch('m-b-one.html')
+        .then(response => response.text())
+        .then(html => {
+            document.getElementById('content').innerHTML = html;
+            stopTracker(watchID);
+        });
+}
+
+function loadMapBistrinskiyOnePage(ctx, next){
+    fetch('reg-on-road.html')
+        .then(response => response.text())
+        .then(html => {
+            mapInit = 'map-bistrinskiy-one';
+            document.getElementById('content').innerHTML = html;
+        });
+}
+
+function loadBistrinskiyTwoPage(ctx, next){
+    fetch('m-b-two.html')
+        .then(response => response.text())
+        .then(html => {
+            document.getElementById('content').innerHTML = html;
+            stopTracker(watchID);
+        });
+}
+
+function loadMapBistrinskiyTwoPage(ctx, next){
+    fetch('reg-on-road.html')
+        .then(response => response.text())
+        .then(html => {
+            mapInit = 'map-bistrinskiy-two';
+            document.getElementById('content').innerHTML = html;
+        });
+}
+
+function loadBistrinskiyThreePage(ctx, next){
+    fetch('m-b-three.html')
+        .then(response => response.text())
+        .then(html => {
+            document.getElementById('content').innerHTML = html;
+            stopTracker(watchID);
+        });
+}
+
+function loadMapBistrinskiyThreePage(ctx, next){
+    fetch('reg-on-road.html')
+        .then(response => response.text())
+        .then(html => {
+            mapInit = 'map-bistrinskiy-three';
+            document.getElementById('content').innerHTML = html;
+        });
+}
+
+function loadSouthCamPage(ctx, next){
+    fetch('south-cam.html')
+        .then(response => response.text())
+        .then(html => {
+            document.getElementById('content').innerHTML = html;
+            stopTracker(watchID);
+        });
+}
+
+function loadSouthCamOnePage(ctx, next){
+    fetch('m-sc-one.html')
+        .then(response => response.text())
+        .then(html => {
+            document.getElementById('content').innerHTML = html;
+            stopTracker(watchID);
+        });
+}
+
+function loadMapSouthCamOnePage(ctx, next){
+    fetch('reg-on-road.html')
+        .then(response => response.text())
+        .then(html => {
+            mapInit = 'map-south-cam-one';
+            document.getElementById('content').innerHTML = html;
+        });
+}
+
 
 function loadInfoPage(ctx, next) {
     fetch('info.html')
@@ -274,14 +384,11 @@ function loadProfilePage(ctx, next) {
     }
 }
 
-var mapInit = 'map';
-
 function loadMapPage(ctx, next) {
     fetch('map.html')
         .then(response => response.text())
         .then(html => {
             document.getElementById('content').innerHTML = html;
-            mapInit = 'map';
             calcMapHeight();
             showCamera();
             createMap();
@@ -289,40 +396,29 @@ function loadMapPage(ctx, next) {
 }
 
 function loadMapNalychevoOnePage(ctx, next) {
-    fetch('map.html')
+    fetch('reg-on-road.html')
         .then(response => response.text())
         .then(html => {
-            document.getElementById('content').innerHTML = html;
             mapInit = 'map-nalychevo-one';
-            calcMapHeight();
-            showCamera();
-            createMap();
+            document.getElementById('content').innerHTML = html;
         });
 }
 
-function loadMapNalychevoTwoPage(ctx, next){
-    console.log(ctx, next);
-    fetch('map.html')
+function loadMapNalychevoTwoPage(ctx, next) {
+    fetch('reg-on-road.html')
         .then(response => response.text())
         .then(html => {
-            document.getElementById('content').innerHTML = html;
             mapInit = 'map-nalychevo-two';
-            calcMapHeight();
-            showCamera();
-            createMap();
+            document.getElementById('content').innerHTML = html;
         });
 }
 
 function loadMapNalychevoThreePage(ctx, next){
-    console.log(ctx, next);
-    fetch('map.html')
+    fetch('reg-on-road.html')
         .then(response => response.text())
         .then(html => {
-            document.getElementById('content').innerHTML = html;
             mapInit = 'map-nalychevo-three';
-            calcMapHeight();
-            showCamera();
-            createMap();
+            document.getElementById('content').innerHTML = html;
         });
 }
 
@@ -722,7 +818,7 @@ function init(){
         ]
     });
 
-    map.controls.add(buttonsContainer, { float: 'right' });
+    //map.controls.add(buttonsContainer, { float: 'right' });
     //map.controls.add(trackerButton, { float: 'left' });
     map.controls.add(followButton);
 
@@ -770,6 +866,18 @@ function init(){
     }else if(mapInit === 'map-nalychevo-three'){
         gpxCombainParser(map,'налычево_таловские',true,'таловские-дзендзур',false)
         borderGpxParser(map,'налычево');
+    }else if(mapInit === 'map-bistrinskiy-one'){
+        gpxParser(map,'bistrinskiy/1. БП_ Пионерская сопка');
+        borderGpxParser(map,'boundry-bistrinsky');
+    }else if(mapInit === 'map-bistrinskiy-two'){
+        gpxParser(map,'bistrinskiy/2. БП_Белые скалы');
+        borderGpxParser(map,'boundry-bistrinsky');
+    }else if(mapInit === 'map-bistrinskiy-three'){
+        gpxParserReverseControl(map,'bistrinskiy/4. БП_Черемшанка',true);
+        borderGpxParser(map,'boundry-bistrinsky');
+    }else if(mapInit === 'map-south-cam-one'){
+        gpxParserReverseControl(map,'southcam/Восхождение на Горелый',false);
+        borderGpxParser(map,'south-camchatskiy');
     }
 
     loadSavedPhotos();
@@ -848,6 +956,7 @@ function stopTracker(id){
     stopTrackerLight(id);
     disableInsomnia();
     hideCamera();
+    mapInit = 'map';
 }
 
 function onSuccess(position){
@@ -1277,5 +1386,5 @@ function generateUUID() {
     );
 }
 
-//loadRegPage();
+//loadMapNalychevoOnePage();
 
