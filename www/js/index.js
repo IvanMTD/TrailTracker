@@ -137,7 +137,7 @@ function configureBackgroundGeolocation() {
         distanceFilter: 30,
         notificationTitle: 'Background tracking',
         notificationText: 'ENABLED',
-        debug: true,
+        debug: false,
         interval: 5000,
         fastestInterval: 5000,
         activitiesInterval: 10000,
@@ -1162,7 +1162,7 @@ function showCamera(){
         var middleIcon = middleCol.find('.expand');
 
         middleCol.removeClass('hidden');
-        footerRow.removeClass('row-cols-4').addClass('row-cols-5');
+        footerRow.removeClass('row-cols-3').addClass('row-cols-4');
         setTimeout(function () {
             middleIcon.addClass('expanded');
         }, 50); // Добавляем небольшую задержку для активации анимации
@@ -1178,7 +1178,7 @@ function hideCamera() {
         middleIcon.removeClass('expanded');
         setTimeout(function () {
             middleCol.addClass('hidden');
-            footerRow.removeClass('row-cols-5').addClass('row-cols-4');
+            footerRow.removeClass('row-cols-4').addClass('row-cols-3');
         }, 500); // Добавляем задержку, чтобы завершить анимацию
     });
 }
